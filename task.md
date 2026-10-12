@@ -1,5 +1,9 @@
 # Task List
 
+Session updates complete on 2026-10-12 16:59 UTC. README badges now match the badge.fury.io npm badge that sits above them on convex.dev component pages: DejaVu Sans outlines, white stroke, crisp shadow, fury padding and kerning. Live on dev, needs a prod deploy.
+
+Session updates complete on 2026-10-09 05:48 UTC. Convex backend deployed to prod (`giant-grouse-674`) with Mike's security fixes (#44, #45), video position and the show all thumbnails toggle. Schema validation passed, no indexes deleted. Anonymous `runSecurityScan` on prod now returns "Authentication required". `findUnsafeMarkdown` on prod flagged 5 approved packages, all with empty `rewrittenFields` (code examples in READMEs), so no cleanup needed. Local bun upgraded to 1.4.2. No app code changed.
+
 Session updates complete on 2026-10-08 13:11 UTC. Security fix for stored XSS on the component detail page: submitter markdown is sanitized on render (`rehype-sanitize`) and on save (`stripUnsafeHtml`, now GFM and normalize aware), unapproved component pages and their markdown, SKILL.md, llms.txt and REST endpoints only serve approved components, `/components/_src` only serves raster images, and the build adds a Content-Security-Policy meta tag. Needs a Convex deploy and a Netlify deploy, then the scan and checks below.
 
 Session updates complete on 2026-10-08 12:30 UTC. `runSecurityScan` now requires an admin (`requireAdminIdentity`) instead of any signed-in user. Needs a Convex deploy.
@@ -22,9 +26,9 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
 
 ## to do
 
-- [ ] Markdown sanitizing and CSP: deploy Convex (`npx convex deploy`) and the frontend together. On the deploy preview, open a few component pages with rich READMEs (badges, `<picture>`, `<details>`, alerts, code blocks) and check they look the same as prod, and that the browser console shows no Content Security Policy errors. If Netlify snippet injection or another tool adds scripts to the page, add their hash or host to `contentSecurityPolicy` in `vite.config.ts`.
+- [ ] Fury style badge: deploy Convex to prod (`npx convex deploy`), then open `https://www.convex.dev/components/badge/<slug>` for an approved component and check it matches the npm badge above it in the README. GitHub caches README images, so live READMEs can take a few minutes to update.
 
-- [ ] Existing rows: run `npx convex run --prod seoContentDb:findUnsafeMarkdown`. Review anything it lists (an `iframe`, `srcdoc` or `on...=` signal on a community submission is worth a closer look). `rewrittenFields` are the fields a re-save would clean; a row with none only matched a raw-text signal, often a code example. Clean the stored copy by refreshing the README or re-saving the content in admin.
+- [ ] Markdown sanitizing and CSP: deploy Convex (`npx convex deploy`) and the frontend together. On the deploy preview, open a few component pages with rich READMEs (badges, `<picture>`, `<details>`, alerts, code blocks) and check they look the same as prod, and that the browser console shows no Content Security Policy errors. If Netlify snippet injection or another tool adds scripts to the page, add their hash or host to `contentSecurityPolicy` in `vite.config.ts`.
 
 - [ ] Unapproved pages: confirm a pending component's page shows the 404 state when signed out, and loads for its submitter and for an admin.
 
@@ -34,7 +38,7 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
 
 - [ ] Decide how owner edits to approved listings should be reviewed. `updateMySubmission` still publishes description, use cases, how it works and README edits on an approved listing straight away. The markdown is sanitized now, but nobody reviews the new text. Options: a Slack alert when an approved listing's content changes (cheap), or keeping edits as a pending draft until an admin approves them (needs draft fields and an admin diff view). Setting `reviewStatus` back to pending would hide the listing until re-approval.
 
-- [ ] Admin-only security scans: deploy Convex (`npx convex deploy`), then run a scan from the admin dashboard and confirm it still queues.
+- [ ] Admin-only security scans: Convex deployed to prod and anonymous calls are rejected (2026-10-09 05:48 UTC). Still run a scan from the prod admin dashboard and confirm it still queues.
 
 - [ ] Video position: deploy to prod (`npx convex deploy`) before or with the frontend, then open a component with a video and confirm it sits under the install command. Set one to Bottom in admin and confirm it moves below the README.
 
@@ -83,9 +87,25 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
   - Replace the `ctx.runQuery` calls in `convex/directoryPage.ts` with shared TypeScript helpers (small, speculative win)
   - Add an entry chunk size budget to CI
   - Add a post deploy check that `curl -I` on a hashed asset returns `immutable`
-- [ ] Upgrade local bun past 1.1.30 so `bun install` keeps the `bun.lockb` format the team uses
-
 ## completed
+
+- [x] README badge matches the badge.fury.io npm badge (2026-10-12 16:59 UTC)
+  - PRD: `prds/badge-fury-style-match.md`
+  - [x] Root cause: convex.dev READMEs use badge.fury.io, which draws DejaVu Sans outlines with a white stroke and an unblurred shadow. Ours used Verdana `<text>` stretched with `textLength` plus the shields blurred shadow
+  - [x] `convex/badgeGlyphs.ts` generated from DejaVu Sans 2.37 (outlines, advances, 220 kerning pairs)
+  - [x] `convex/badgeSvg.ts` `renderBadge` replaces `renderShieldsBadge`; `convex/http.ts` import updated
+  - [x] Verified: six live fury SVGs (npm, pypi, gem) match width, split and glyph points within 0.001px; `tsc -p convex --noEmit` passes; lints clean
+  - [x] `badge-palette-preview.html` rebuilt with the convex.dev pairing at 1x and 3x, checked in the browser
+  - [x] Docs: `src/docs/badges.md`, `src/docs/api-endpoints.md`
+
+- [x] Prod backend deploy for Mike's security fixes (2026-10-09 05:48 UTC)
+  - [x] `git pull --ff-only` to `0074bc3` (#43, #44, #45), upgraded bun 1.1.30 to 1.4.2, kept the pulled `bun.lockb`
+  - [x] `bun install --force` to restore the missing `@esbuild/darwin-arm64@0.27.0` under `convex/node_modules`. The old bun left it out, and `convex dev` failed with "esbuild failed: The service was stopped"
+  - [x] `tsc -p convex`, `tsc -b`, `npx convex dev --once` and `vite build` pass
+  - [x] `npm run deploy:backend -- --yes` to `giant-grouse-674`: schema validation complete, no indexes deleted
+  - [x] Anonymous `securityScan:runSecurityScan` on prod returns "Authentication required"
+  - [x] `findUnsafeMarkdown` on prod: 5 approved packages flagged (r2, convalytics-dev, abdssamie/convex-analytics, waynesutton/agent-ready, vllnt/convex-events), all with empty `rewrittenFields`, so they're code examples and need no cleanup
+  - [x] Live check on www.convex.dev/components/cloudflare-r2: page renders, no live scripts or forms in README content, CSP meta tag present, no images blocked
 
 - [x] Per-category "Show all thumbnails on the category page" toggle (2026-10-02 16:52 UTC)
   - PRD: `prds/category-show-all-thumbnails.md`

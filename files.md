@@ -355,7 +355,11 @@ HTTP router configuration. Defines:
 
 ### `convex/badgeSvg.ts`
 
-Shields.io flat badge renderer used by `/api/badge`. Holds the Verdana 11px width table (from `anafanafo`), `measureText`, `renderShieldsBadge`, the `BADGE_COLORS` status map (approved `#4c1`), and the shared `escapeXml`. Output is byte identical to `badge-maker@6` flat style, including the blurred text shadow.
+README badge renderer used by `/api/badge`. `renderBadge` matches the badge.fury.io npm version badge: DejaVu Sans 11px text drawn as glyph outlines with a 0.3px white stroke and a crisp 1px `#010101` shadow, fury's padding (label +12, value +11) and kerning. Also holds `measureText`, the `BADGE_COLORS` status map (approved `#4c1`) and the shared `escapeXml`. Verified against live fury SVGs to within 0.001px per glyph point.
+
+### `convex/badgeGlyphs.ts`
+
+Generated DejaVu Sans 2.37 data for `convex/badgeSvg.ts`: advance widths and TrueType outlines for printable ASCII in font units (y up), plus the 220 ASCII kerning pairs. Includes the font license notice. Regeneration steps are in `prds/badge-fury-style-match.md`.
 
 ### `convex/directoryPage.ts`
 
@@ -365,7 +369,7 @@ Shields.io flat badge renderer used by `/api/badge`. Holds the Verdana 11px widt
 
 Main HTTP router with all API endpoints. Defines:
 - `/api/export-csv` endpoint for CSV export of all packages
-- `/api/badge` endpoint for dynamic SVG badge generation (rendered by `convex/badgeSvg.ts` in exact shields.io flat style) and analytics tracking
+- `/api/badge` endpoint for dynamic SVG badge generation (rendered by `convex/badgeSvg.ts` to match the badge.fury.io npm badge) and analytics tracking
 - `/api/markdown?slug=<slug>` endpoint serving raw markdown for a single component. This and the other per-component endpoints (`/api/skill`, `/api/component-llms`, `/api/components/detail`, `/install`, `/docs`) only serve approved packages that aren't hidden, archived or marked for deletion (`isPublicPackage`), so a submission still in review gets a 404
 - `/api/skill?slug=<slug>` endpoint serving the raw generated SKILL.md for a single component (404 for unapproved, hidden or archived packages, missing skills, or `hideSeoAndSkillContentOnDetailPage`); backs the `/components/<slug>/SKILL.md` alias. Component markdown, llms.txt, and index outputs include skill links when a public skill exists
 - `/api/markdown-index` endpoint serving markdown listing of all approved components
@@ -870,8 +874,8 @@ Convex Components Challenge documentation.
 
 ### `badge-palette-preview.html`
 
-Full width local review page for README badges. Renders every status through `<img>` with a JS copy of `convex/badgeSvg.ts` (keep the two in sync), next to live img.shields.io badges, the previous no blur pass, and the original badge, with a 3x zoom row and a dark README row. Colors:
-- Approved: `#4c1` (shields brightgreen)
+Full width local review page for README badges. Renders every status through `<img>` with a JS copy of `convex/badgeSvg.ts` and the glyph data from `convex/badgeGlyphs.ts` (keep them in sync). Shows the convex.dev README pairing (live badge.fury.io npm badge above ours) at 1x and 3x on the docs cream background, a side by side against the live fury badge and the previous shields style, a 3x zoom row, the status table and a dark README row. Colors:
+- Approved: `#4c1` (same green as the npm badge)
 - In Review: `#2563eb`
 - Changes Requested: `#ea580c`
 - Pending: `#ca8a04`

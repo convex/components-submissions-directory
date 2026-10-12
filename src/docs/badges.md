@@ -26,11 +26,11 @@ Badge snippets with copy buttons and live previews are available on the Profile 
 
 ## Badge styles
 
-The badge matches the shields.io flat style exactly: 20px tall, Verdana 11px text sized from measured character widths, 5px padding on each side, and a `#555` gray left box. The right box color follows your review status:
+The badge is drawn to match the badge.fury.io npm version badge that most component READMEs already show, so the two look like a set when stacked. It is 20px tall with a `#555` gray left box. The text is DejaVu Sans 11px, drawn as vector outlines rather than a font, so it looks the same on every device. White text gets a thin stroke and a crisp shadow 1px below it. The right box color follows your review status:
 
 | Status | Color | Hex |
 |--------|-------|-----|
-| Approved | Green (shields brightgreen) | `#4c1` |
+| Approved | Green (same as the npm badge) | `#4c1` |
 | In Review | Blue | `#2563eb` |
 | Changes Requested | Orange | `#ea580c` |
 | Pending | Yellow | `#ca8a04` |

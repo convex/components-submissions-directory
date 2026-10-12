@@ -9,7 +9,7 @@ import { normalizeMarkdown } from "../shared/normalizeMarkdown";
 import { isOfficialComponent } from "../shared/officialComponents";
 import { isSupportedRepoUrl, repoHostLabel } from "../shared/repoUrl";
 import { resolveApiCaller, rateLimitHeaders, type ApiCallerResult } from "./apiKeys";
-import { BADGE_COLORS, escapeXml, renderShieldsBadge } from "./badgeSvg";
+import { BADGE_COLORS, escapeXml, renderBadge } from "./badgeSvg";
 
 const http = httpRouter();
 const DIRECTORY_ORIGIN = "https://www.convex.dev";
@@ -722,7 +722,7 @@ http.route({
 });
 
 function generateBadgeSvg(name: string, status: string, statusColor: string): string {
-  return renderShieldsBadge({
+  return renderBadge({
     label: "Convex",
     message: `${status}: ${name}`,
     color: statusColor,

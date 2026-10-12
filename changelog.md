@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- README badges now match the npm version badge they sit under (2026-10-12 16:59 UTC)
+  - Convex component READMEs show a badge.fury.io `npm package` badge, not a shields.io one. Fury draws DejaVu Sans as vector outlines with a white stroke and a crisp shadow, so next to it our Verdana `<text>` badge looked thin and stretched, especially on iPhone.
+  - `renderBadge` now draws text the same way: DejaVu Sans 11px glyph outlines, 0.3px white stroke, a 1px `#010101` shadow with no blur, fury's padding and kerning, and fury's background draw order. Rendering `npm package | 2.1.5` through it matches the live fury SVG width, split and every glyph point within 0.001px (also checked against pypi and gem badges).
+  - The outline is defined once and drawn twice with `<use>`, so a typical badge is about 13 KB. Status colors are unchanged.
+  - Local preview page shows the convex.dev pairing at 1x and 3x next to the live fury badge.
+  - Files: `convex/badgeSvg.ts`, `convex/badgeGlyphs.ts` (new), `convex/http.ts`, `src/docs/badges.md`, `src/docs/api-endpoints.md`, `badge-palette-preview.html`
+
 ### Security
 
 - Uploaded files can't run as pages on www.convex.dev (2026-10-08 13:11 UTC)

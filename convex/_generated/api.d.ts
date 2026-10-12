@@ -13,6 +13,7 @@ import type * as aiReview from "../aiReview.js";
 import type * as aiSettings from "../aiSettings.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as auth from "../auth.js";
+import type * as badgeGlyphs from "../badgeGlyphs.js";
 import type * as badgeSvg from "../badgeSvg.js";
 import type * as contentGenerationLimits from "../contentGenerationLimits.js";
 import type * as crons from "../crons.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   aiSettings: typeof aiSettings;
   apiKeys: typeof apiKeys;
   auth: typeof auth;
+  badgeGlyphs: typeof badgeGlyphs;
   badgeSvg: typeof badgeSvg;
   contentGenerationLimits: typeof contentGenerationLimits;
   crons: typeof crons;

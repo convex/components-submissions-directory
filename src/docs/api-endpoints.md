@@ -105,7 +105,7 @@ Dynamic SVG badges that component authors can embed in their GitHub READMEs.
 
 ### Badge format
 
-The badge matches the shields.io flat style (20px tall, measured Verdana 11px text, `#555` left box) with status-specific colors. Approved uses shields brightgreen `#4c1`; see [README Badges](badges.md) for the full palette. It is returned as an SVG image with appropriate cache headers via a Netlify edge function proxy.
+The badge matches the badge.fury.io npm version badge (20px tall, DejaVu Sans 11px text drawn as outlines with a crisp shadow, `#555` left box) with status-specific colors. Approved uses the same `#4c1` green as the npm badge; see [README Badges](badges.md) for the full palette. It is returned as an SVG image with appropriate cache headers via a Netlify edge function proxy.
 
 ### Adding a badge to your README
 
