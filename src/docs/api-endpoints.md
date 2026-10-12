@@ -70,6 +70,19 @@ Each approved component has its own llms.txt file:
 
 The llms.txt file for a component includes package name, description, install command, category, and documentation links formatted for LLM consumption.
 
+### Category-level llms.txt and markdown
+
+Every enabled category has its own llms.txt and markdown file, linked from the For Agents section at the bottom of its category page. They are built on each request, so new approvals, curated list edits and renames show up without a rebuild. Disabled or unknown categories return 404. The root `llms.txt` header and `components.md` list every category's files.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/category-llms?slug=X` | Category llms.txt |
+| GET | `/api/category-markdown?slug=X` | Category markdown |
+| GET | `/components/:category-llms.txt` | Alias via edge function (for example `/components/ai-llms.txt`) |
+| GET | `/components/:category.md` | Alias via edge function (for example `/components/ai.md`) |
+
+`/components/get-convex-llms.txt` and `/components/get-convex.md` follow the same scheme for official components.
+
 ## Markdown endpoints
 
 Markdown endpoints return component content as plain markdown, useful for AI context windows and documentation pipelines.
@@ -167,6 +180,8 @@ For the full MCP (Model Context Protocol) API, see the [MCP documentation](/comp
 | `/components.md` | `/api/markdown-index` |
 | `/components/:slug/llms.txt` | `/api/component-llms?slug=:slug` |
 | `/components/:slug/*.md` | `/api/markdown?slug=:slug` (edge function) |
+| `/components/:category-llms.txt` | `/api/category-llms?slug=:category` (edge function) |
+| `/components/:category.md` | `/api/category-markdown?slug=:category` (edge function) |
 | `/components/badge/:slug` | `/api/badge?slug=:slug` (edge function) |
 | `/components/:slug` | OG meta injection edge function |
 | `/api/components/*` | REST API proxy to Convex |

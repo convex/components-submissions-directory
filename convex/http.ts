@@ -5,6 +5,7 @@ import { convexToJson, type Value } from "convex/values";
 import { DIRECTORY_SORTS, type DirectorySort } from "./directoryPage";
 import type { Doc, Id } from "./_generated/dataModel";
 import { buildComponentUrls } from "../shared/componentUrls";
+import { buildCategoryUrls } from "../shared/categoryUrls";
 import { normalizeMarkdown } from "../shared/normalizeMarkdown";
 import { isOfficialComponent } from "../shared/officialComponents";
 import { isSupportedRepoUrl, repoHostLabel } from "../shared/repoUrl";
@@ -149,17 +150,25 @@ http.route({
   path: "/api/llms.txt",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    const packages = await ctx.runQuery(
-      internal.packages._listApprovedPackages,
-    );
+    const [packages, categories] = await Promise.all([
+      ctx.runQuery(internal.packages._listApprovedPackages),
+      ctx.runQuery(internal.packages._listEnabledCategoriesForAgents),
+    ]);
+
+    const extraHeaderLines = [
+      `Official components by the Convex team: ${DIRECTORY_ORIGIN}/components/get-convex-llms.txt`,
+    ];
+    if (categories.length > 0) {
+      extraHeaderLines.push(
+        `Per-category lists: ${DIRECTORY_ORIGIN}/components/<category>-llms.txt and ${DIRECTORY_ORIGIN}/components/<category>.md. Categories: ${categories.map((cat) => cat.slug).join(", ")}`,
+      );
+    }
 
     const body = buildLlmsTxtBody(packages, {
       title: "Convex Components Directory",
       intro:
         "A curated index of open-source components for the Convex backend platform.",
-      extraHeaderLines: [
-        `Official components by the Convex team: ${DIRECTORY_ORIGIN}/components/get-convex-llms.txt`,
-      ],
+      extraHeaderLines,
     });
 
     return new Response(body, {
@@ -186,6 +195,60 @@ http.route({
         "Open-source components built by the Convex team (github.com/get-convex).",
       extraHeaderLines: [
         `Full directory including community components: ${DIRECTORY_ORIGIN}/components/llms.txt`,
+      ],
+    });
+
+    return new Response(body, {
+      status: 200,
+      headers: llmsIndexHeaders(),
+    });
+  }),
+});
+
+// Admin labels may already contain "Convex" or "Components", so avoid doubling them
+function categoryAgentTitle(label: string): string {
+  const base = /\bcomponents?\b/i.test(label) ? label : `${label} Components`;
+  return /\bconvex\b/i.test(base) ? base : `Convex ${base}`;
+}
+
+function categoryAgentDescription(category: {
+  label: string;
+  description: string;
+}): string {
+  const text =
+    category.description.trim() ||
+    `Components in the ${category.label} category of the Convex Components Directory`;
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+// ============ PER-CATEGORY LLMs.txt ENDPOINT ============
+// Serves /components/<slug>-llms.txt for any enabled category. Rendered per
+// request, so it follows approvals, curated membership edits and renames.
+http.route({
+  path: "/api/category-llms",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const slug = new URL(request.url).searchParams.get("slug") || "";
+    const data = slug
+      ? await ctx.runQuery(internal.packages._getCategoryAgentData, { slug })
+      : null;
+
+    if (!data) {
+      return new Response(`# Not Found\n\nCategory "${slug}" not found.`, {
+        status: 404,
+        headers: llmsTxtHeaders(),
+      });
+    }
+
+    const { category } = data;
+    const links = buildCategoryUrls(category.slug, DIRECTORY_ORIGIN);
+    const body = buildLlmsTxtBody(data.packages, {
+      title: categoryAgentTitle(category.label),
+      intro: categoryAgentDescription(category),
+      extraHeaderLines: [
+        `Category page: ${links.pageUrl}`,
+        `Markdown version: ${links.markdownUrl}`,
+        `Full directory including every category: ${DIRECTORY_ORIGIN}/components/llms.txt`,
       ],
     });
 
@@ -424,10 +487,21 @@ function markdownHeaders(): Record<string, string> {
 }
 
 // ============ MARKDOWN INDEX ENDPOINT ============
-// Builds the markdown index body for a set of packages, grouped by category
+type AgentCategory = { slug: string; label: string };
+
+// Builds the markdown index body for a set of packages, grouped by category.
+// `categories` supplies admin-managed labels (renames show up here) and, with
+// `categoryIndex`, a list of per-category agent files after the header.
 function buildMarkdownIndexBody(
   packages: any[],
-  opts: { title: string; intro: string },
+  opts: {
+    title: string;
+    intro: string;
+    categories?: AgentCategory[];
+    categoryIndex?: boolean;
+    grouped?: boolean;
+    footer?: string;
+  },
 ): string {
   const lines: string[] = [];
   lines.push(`# ${opts.title}\n`);
@@ -435,10 +509,25 @@ function buildMarkdownIndexBody(
   lines.push(`> ${AGENT_INSTRUCTION_LINE}\n`);
   lines.push(`**${packages.length} components** | Updated ${new Date().toISOString().slice(0, 10)}\n`);
 
-  // Group by category
+  const labelBySlug: Record<string, string> = { ...CATEGORY_LABELS };
+  for (const cat of opts.categories ?? []) labelBySlug[cat.slug] = cat.label;
+
+  if (opts.categoryIndex && opts.categories && opts.categories.length > 0) {
+    lines.push(`## Browse by category\n`);
+    for (const cat of opts.categories) {
+      const links = buildCategoryUrls(cat.slug, DIRECTORY_ORIGIN);
+      lines.push(
+        `- ${cat.label}: [${cat.slug}.md](${links.markdownUrl}) | [${cat.slug}-llms.txt](${links.llmsUrl})`,
+      );
+    }
+    lines.push("");
+  }
+
+  // Group by category, or a single untitled group for a flat list
+  const grouped = opts.grouped ?? true;
   const byCategory: Record<string, any[]> = {};
   for (const pkg of packages) {
-    const cat = pkg.category || "general";
+    const cat = grouped ? pkg.category || "general" : "";
     if (!byCategory[cat]) byCategory[cat] = [];
     byCategory[cat].push(pkg);
   }
@@ -447,8 +536,9 @@ function buildMarkdownIndexBody(
   const sortedCategories = Object.keys(byCategory).sort();
 
   for (const category of sortedCategories) {
-    const catLabel = CATEGORY_LABELS[category] || category;
-    lines.push(`## ${catLabel}\n`);
+    if (grouped) {
+      lines.push(`## ${labelBySlug[category] || category}\n`);
+    }
 
     // Sort packages within category by name
     const sortedPkgs = byCategory[category].sort((a: any, b: any) =>
@@ -484,7 +574,9 @@ function buildMarkdownIndexBody(
   }
 
   lines.push("---\n");
-  lines.push("[View full directory](https://www.convex.dev/components)\n");
+  lines.push(
+    `${opts.footer ?? "[View full directory](https://www.convex.dev/components)"}\n`,
+  );
 
   return lines.join("\n");
 }
@@ -494,14 +586,17 @@ http.route({
   path: "/api/markdown-index",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    const packages = await ctx.runQuery(
-      internal.packages._listApprovedPackages,
-    );
+    const [packages, categories] = await Promise.all([
+      ctx.runQuery(internal.packages._listApprovedPackages),
+      ctx.runQuery(internal.packages._listEnabledCategoriesForAgents),
+    ]);
 
     const body = buildMarkdownIndexBody(packages, {
       title: "Convex Components Directory",
       intro:
         "A curated index of open-source components for the Convex backend platform.",
+      categories,
+      categoryIndex: true,
     });
 
     return new Response(body, {
@@ -517,15 +612,54 @@ http.route({
   path: "/api/get-convex-markdown",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    const packages = await ctx.runQuery(
-      internal.packages._listApprovedPackages,
-    );
+    const [packages, categories] = await Promise.all([
+      ctx.runQuery(internal.packages._listApprovedPackages),
+      ctx.runQuery(internal.packages._listEnabledCategoriesForAgents),
+    ]);
     const official = packages.filter(isOfficialComponent);
 
     const body = buildMarkdownIndexBody(official, {
       title: "Convex Official Components",
       intro:
         "Open-source components built by the Convex team ([github.com/get-convex](https://github.com/get-convex)). For the full directory including community components, see [components.md](https://www.convex.dev/components/components.md).",
+      categories,
+    });
+
+    return new Response(body, {
+      status: 200,
+      headers: markdownHeaders(),
+    });
+  }),
+});
+
+// ============ PER-CATEGORY MARKDOWN ENDPOINT ============
+// Serves /components/<slug>.md for any enabled category. Official and curated
+// categories group members by primary category; regular ones are one list.
+http.route({
+  path: "/api/category-markdown",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const slug = new URL(request.url).searchParams.get("slug") || "";
+    const data = slug
+      ? await ctx.runQuery(internal.packages._getCategoryAgentData, { slug })
+      : null;
+
+    if (!data) {
+      return new Response(`# Not Found\n\nCategory "${slug}" not found.`, {
+        status: 404,
+        headers: markdownHeaders(),
+      });
+    }
+
+    const { category } = data;
+    const links = buildCategoryUrls(category.slug, DIRECTORY_ORIGIN);
+    const description = categoryAgentDescription(category);
+    const body = buildMarkdownIndexBody(data.packages, {
+      title: categoryAgentTitle(category.label),
+      intro: `${description} Also available as [${category.slug}-llms.txt](${links.llmsUrl}). For every category, see [components.md](${DIRECTORY_ORIGIN}/components/components.md).`,
+      categories: data.categories,
+      grouped: category.spansCategories,
+      footer: `[View ${category.label} on the Convex Components Directory](${links.pageUrl})`,
     });
 
     return new Response(body, {
@@ -778,6 +912,18 @@ http.route({
 
 http.route({
   path: "/api/component-llms",
+  method: "OPTIONS",
+  handler: contentOptionsHandler(),
+});
+
+http.route({
+  path: "/api/category-llms",
+  method: "OPTIONS",
+  handler: contentOptionsHandler(),
+});
+
+http.route({
+  path: "/api/category-markdown",
   method: "OPTIONS",
   handler: contentOptionsHandler(),
 });

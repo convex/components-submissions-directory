@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every category gets its own llms.txt and markdown file (2026-10-12 17:30 UTC)
+  - `/components/<slug>-llms.txt` and `/components/<slug>.md` for any enabled category, in the same format as the official `get-convex` files. They're built on each request, so approving a component, editing a curated list or renaming a category updates them with no extra step. Disabled or unknown categories return 404.
+  - A For Agents section at the bottom of each category page links to both files and to the full directory files.
+  - Admin > Category Management shows each enabled category's agent file links, and the edit form warns that changing a slug moves the page and its files.
+  - The root `llms.txt` lists the per-category URLs, and `components.md` gets a "Browse by category" section. Markdown section headings now use the admin-set category labels.
+  - The category page and the agent files share one membership rule, so they can't disagree. The slug `components` is reserved because it would clash with `components.md`.
+  - Files: `convex/packages.ts`, `convex/http.ts`, `shared/categoryUrls.ts` (new), `netlify/edge-functions/og-meta.ts`, `src/pages/CategoryPage.tsx`, `src/pages/Admin.tsx`, `src/docs/api-endpoints.md`
+
 ### Changed
+
+- Existing agent files keep their URLs, with small content updates (2026-10-12 17:32 UTC)
+  - Checked against prod: `llms.txt`, `components.md`, `get-convex-llms.txt`, `get-convex.md`, `sitemap.xml` and every `/components/<slug>/llms.txt` and `/components/<slug>/<leaf>.md` route the same way as before. No prod component slug matches the new single segment pattern, and `/components/<category>.md` only served the HTML app shell before.
+  - `llms.txt` gains one header line listing the per-category files. `components.md` gains a "Browse by category" section.
+  - Section headings in `components.md` and `get-convex.md` now use the Admin labels instead of a hardcoded list, for example `## Auth` becomes `## Authentication`, `## AI` becomes `## AI Agents` and `## ai-infrastructure` becomes `## AI Infrastructure`. Component entries are unchanged.
 
 - README badges now match the npm version badge they sit under (2026-10-12 16:59 UTC)
   - Convex component READMEs show a badge.fury.io `npm package` badge, not a shields.io one. Fury draws DejaVu Sans as vector outlines with a white stroke and a crisp shadow, so next to it our Verdana `<text>` badge looked thin and stretched, especially on iPhone.

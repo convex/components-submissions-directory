@@ -203,6 +203,33 @@ export async function listApprovedOfficialPackages(
   );
 }
 
+// ============ HELPER: Approved + visible members of any category ============
+// Single membership rule for category pages, listings, and agent files:
+// derived official by rule, curated by join table, regular by package field.
+// A missing category doc falls back to the package field.
+async function listPublicPackagesForCategory(
+  ctx: QueryCtx | MutationCtx,
+  slug: string,
+  categoryDoc: Doc<"categories"> | null,
+): Promise<Array<Doc<"packages">>> {
+  if (categoryDoc?.derivedFrom === "official") {
+    return await listApprovedOfficialPackages(ctx);
+  }
+  if (categoryDoc?.kind === "curated") {
+    return await listApprovedCuratedPackages(ctx, categoryDoc._id);
+  }
+  const packages = await ctx.db
+    .query("packages")
+    .withIndex("by_category_and_visibility", (q) => q.eq("category", slug))
+    .take(1000);
+  return packages.filter(
+    (pkg) =>
+      pkg.reviewStatus === "approved" &&
+      (!pkg.visibility || pkg.visibility === "visible") &&
+      !pkg.markedForDeletion,
+  );
+}
+
 // ============ HELPER: Get current user's email from identity claims ============
 async function getCurrentUserEmail(
   ctx: QueryCtx | MutationCtx,
@@ -5078,31 +5105,16 @@ export const listApprovedComponents = query({
   handler: async (ctx, args) => {
     let packages;
     if (args.category) {
-      // Derived categories (official components) resolve membership by rule, not by field.
+      const categorySlug = args.category;
       const categoryDoc = await ctx.db
         .query("categories")
-        .withIndex("by_slug", (q) => q.eq("slug", args.category!))
+        .withIndex("by_slug", (q) => q.eq("slug", categorySlug))
         .first();
-
-      if (categoryDoc?.derivedFrom === "official") {
-        packages = await listApprovedOfficialPackages(ctx);
-      } else if (categoryDoc?.kind === "curated") {
-        // Curated categories resolve membership through the join table.
-        packages = await listApprovedCuratedPackages(ctx, categoryDoc._id);
-      } else {
-        packages = await ctx.db
-          .query("packages")
-          .withIndex("by_category_and_visibility", (q) =>
-            q.eq("category", args.category),
-          )
-          .take(1000);
-        packages = packages.filter(
-          (pkg) =>
-            pkg.reviewStatus === "approved" &&
-            (!pkg.visibility || pkg.visibility === "visible") &&
-            !pkg.markedForDeletion,
-        );
-      }
+      packages = await listPublicPackagesForCategory(
+        ctx,
+        categorySlug,
+        categoryDoc,
+      );
     } else {
       packages = await ctx.db
         .query("packages")
@@ -6809,26 +6821,11 @@ export const getCategoryBySlug = query({
       return null;
     }
 
-    // Count packages in this category. Derived categories resolve membership by
-    // rule; curated categories resolve it through the memberships join table.
-    const visible =
-      category.derivedFrom === "official"
-        ? await listApprovedOfficialPackages(ctx)
-        : category.kind === "curated"
-          ? await listApprovedCuratedPackages(ctx, category._id)
-          : (
-              await ctx.db
-                .query("packages")
-                .withIndex("by_category_and_visibility", (q) =>
-                  q.eq("category", args.slug),
-                )
-                .take(1000)
-            ).filter(
-              (pkg) =>
-                pkg.reviewStatus === "approved" &&
-                (!pkg.visibility || pkg.visibility === "visible") &&
-                !pkg.markedForDeletion,
-            );
+    const visible = await listPublicPackagesForCategory(
+      ctx,
+      args.slug,
+      category,
+    );
 
     const verifiedCount = visible.filter((pkg) => pkg.convexVerified).length;
 
@@ -7337,6 +7334,74 @@ export const _listApprovedPackages = internalQuery({
     return packages.filter(
       (pkg) => !pkg.visibility || pkg.visibility === "visible",
     );
+  },
+});
+
+// Enabled categories in sidebar order, for labels and per-category agent file
+// links in the directory-wide llms.txt and components.md
+const agentCategoryValidator = v.object({
+  slug: v.string(),
+  label: v.string(),
+});
+
+export const _listEnabledCategoriesForAgents = internalQuery({
+  args: {},
+  returns: v.array(agentCategoryValidator),
+  handler: async (ctx) => {
+    const categories = await ctx.db
+      .query("categories")
+      .withIndex("by_enabled_and_sortOrder", (q) => q.eq("enabled", true))
+      .take(1000);
+    return categories.map((cat) => ({ slug: cat.slug, label: cat.label }));
+  },
+});
+
+// One enabled category plus its public members, for the per-category
+// llms.txt and markdown files. Null when the category is missing or disabled,
+// matching the category landing page.
+export const _getCategoryAgentData = internalQuery({
+  args: { slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      category: v.object({
+        slug: v.string(),
+        label: v.string(),
+        description: v.string(),
+        // Official and curated members span several primary categories
+        spansCategories: v.boolean(),
+      }),
+      packages: v.array(v.any()),
+      categories: v.array(agentCategoryValidator),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const slug = args.slug.trim().toLowerCase();
+    const category = await ctx.db
+      .query("categories")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+    if (!category || !category.enabled) return null;
+
+    const [packages, enabled] = await Promise.all([
+      listPublicPackagesForCategory(ctx, slug, category),
+      ctx.db
+        .query("categories")
+        .withIndex("by_enabled_and_sortOrder", (q) => q.eq("enabled", true))
+        .take(1000),
+    ]);
+
+    return {
+      category: {
+        slug: category.slug,
+        label: category.label,
+        description: category.description,
+        spansCategories:
+          category.derivedFrom !== undefined || category.kind === "curated",
+      },
+      packages,
+      categories: enabled.map((cat) => ({ slug: cat.slug, label: cat.label })),
+    };
   },
 });
 
@@ -7886,6 +7951,13 @@ export const upsertCategory = mutation({
   handler: async (ctx, args) => {
     await requireAdminIdentity(ctx);
     const normalizedSlug = args.slug.trim().toLowerCase();
+    // /components/<slug>.md is the category's agent file; "components" would
+    // shadow the directory-wide components.md
+    if (normalizedSlug === "components") {
+      throw new ConvexError(
+        'Category slug "components" is reserved. Pick another slug.',
+      );
+    }
     const conflict = await ctx.db
       .query("categories")
       .withIndex("by_slug", (q) => q.eq("slug", normalizedSlug))

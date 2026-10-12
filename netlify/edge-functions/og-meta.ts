@@ -414,6 +414,40 @@ export default async (
       },
     });
   }
+
+  // Per-category agent files: /components/<category>-llms.txt and
+  // /components/<category>.md. One path segment only, so component files
+  // (/components/<slug>/llms.txt, /components/<slug>/<leaf>.md) never match.
+  // The exact official and components.md paths above are handled first.
+  const categoryFileMatch = url.pathname.match(
+    /^\/components\/([^/]+?)(-llms\.txt|\.md)$/
+  );
+  if (categoryFileMatch) {
+    const isLlms = categoryFileMatch[2] === "-llms.txt";
+    let categorySlug = categoryFileMatch[1];
+    try {
+      categorySlug = decodeURIComponent(categorySlug);
+    } catch {
+      // Malformed escape: look the slug up as written
+    }
+    const apiPath = isLlms ? "/api/category-llms" : "/api/category-markdown";
+    const res = await fetch(
+      `${siteUrl}${apiPath}?slug=${encodeURIComponent(categorySlug)}`,
+      isLlms
+        ? undefined
+        : { headers: { accept: "text/markdown, text/plain;q=0.9, */*;q=0.8" } }
+    );
+    return new Response(res.body, {
+      status: res.status,
+      headers: {
+        "Content-Type": isLlms
+          ? "text/plain; charset=utf-8"
+          : "text/markdown; charset=utf-8",
+        "Cache-Control": "public, max-age=300, s-maxage=600",
+      },
+    });
+  }
+
   const llmsMatch = url.pathname.match(/^\/components\/(.+)\/llms\.txt$/);
   if (llmsMatch) {
     const slug = llmsMatch[1];

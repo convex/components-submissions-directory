@@ -22,6 +22,8 @@ import {
   ChevronDownIcon,
   ChevronLeftIcon,
 } from "@radix-ui/react-icons";
+import { Robot, FileText, ArrowSquareOut } from "@phosphor-icons/react";
+import { buildCategoryClientUrls } from "../../shared/categoryUrls";
 
 type SortBy = "newest" | "downloads" | "updated" | "rating" | "verified";
 
@@ -228,6 +230,14 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
   const directoryCardHoverClass =
     "hover:bg-[rgb(246_238_219/var(--tw-bg-opacity,1))]";
+
+  const agentFileUrls = categoryData
+    ? buildCategoryClientUrls(
+        categoryData.slug,
+        window.location.origin,
+        import.meta.env.VITE_CONVEX_URL as string | undefined,
+      )
+    : null;
 
   const clearSearch = () => {
     setSearchTerm("");
@@ -591,6 +601,65 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                   </div>
                 )}
               </>
+            )}
+
+            {/* For Agents: machine-readable lists of this category, rendered
+                live from the catalog so they track new and renamed components */}
+            {categoryData && agentFileUrls && (
+              <section className="mt-12 pt-8 border-t border-border">
+                <h2 className="text-lg font-semibold text-text-primary mb-2">
+                  For Agents
+                </h2>
+                <p className="text-sm text-text-secondary mb-4">
+                  AI agents and coding assistants can read every{" "}
+                  {categoryData.label} component from these machine-readable
+                  files. They update automatically as components are added to
+                  this category.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={agentFileUrls.llmsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-border text-text-primary hover:bg-bg-hover transition-colors"
+                  >
+                    <Robot size={16} />
+                    {categoryData.slug}-llms.txt
+                    <ArrowSquareOut size={14} className="text-text-tertiary" />
+                  </a>
+                  <a
+                    href={agentFileUrls.markdownUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-border text-text-primary hover:bg-bg-hover transition-colors"
+                  >
+                    <FileText size={16} />
+                    {categoryData.slug}.md
+                    <ArrowSquareOut size={14} className="text-text-tertiary" />
+                  </a>
+                </div>
+                <p className="text-xs text-text-tertiary mt-4">
+                  Looking for every category? Use the full directory{" "}
+                  <a
+                    href="/components/llms.txt"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-text-primary transition-colors"
+                  >
+                    llms.txt
+                  </a>{" "}
+                  or{" "}
+                  <a
+                    href="/components/components.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-text-primary transition-colors"
+                  >
+                    components.md
+                  </a>
+                  .
+                </p>
+              </section>
             )}
           </main>
         </div>

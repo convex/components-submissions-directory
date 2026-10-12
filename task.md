@@ -1,5 +1,7 @@
 # Task List
 
+Session updates complete on 2026-10-12 17:30 UTC. Every enabled category now has auto-updating agent files at `/components/<slug>-llms.txt` and `/components/<slug>.md`, linked from a For Agents section at the bottom of each category page and from each row in Admin > Category Management. Root `llms.txt` and `components.md` list them. Verified on dev, needs a Convex and Netlify deploy. PRD: `prds/category-agent-files.md`.
+
 Session updates complete on 2026-10-12 16:59 UTC. README badges now match the badge.fury.io npm badge that sits above them on convex.dev component pages: DejaVu Sans outlines, white stroke, crisp shadow, fury padding and kerning. Live on dev, needs a prod deploy.
 
 Session updates complete on 2026-10-09 05:48 UTC. Convex backend deployed to prod (`giant-grouse-674`) with Mike's security fixes (#44, #45), video position and the show all thumbnails toggle. Schema validation passed, no indexes deleted. Anonymous `runSecurityScan` on prod now returns "Authentication required". `findUnsafeMarkdown` on prod flagged 5 approved packages, all with empty `rewrittenFields` (code examples in READMEs), so no cleanup needed. Local bun upgraded to 1.4.2. No app code changed.
@@ -25,6 +27,8 @@ Earlier session: 2026-09-24 01:46 UTC. Review outcome messages shipped to dev: f
 Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted everywhere GitHub ones are read: submit and edit validation, preflight, README fetch for content generation, issues list and counts, author avatar, markdown link rewriting, host icons and copy. GitHub write features (issue mirror, broadcast, reply sync) stay GitHub only. One backend file (`convex/aiReview.ts`) is blocked by a lint hook false positive; see the to do below.
 
 ## to do
+
+- [ ] Category agent files: deploy Convex (`npx convex deploy`) and Netlify together (the edge function route ships with the frontend). Then check `curl -I https://www.convex.dev/components/ai-llms.txt` and `.../components/ai.md` return 200 with text content types, `.../components/get-convex.md` is unchanged, `.../components/nope-xyz.md` returns 404, and the For Agents links on `/components/categories/ai` open the files.
 
 - [ ] Fury style badge: deploy Convex to prod (`npx convex deploy`), then open `https://www.convex.dev/components/badge/<slug>` for an approved component and check it matches the npm badge above it in the README. GitHub caches README images, so live READMEs can take a few minutes to update.
 
@@ -88,6 +92,17 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
   - Add an entry chunk size budget to CI
   - Add a post deploy check that `curl -I` on a hashed asset returns `immutable`
 ## completed
+
+- [x] Per-category agent files and For Agents section (2026-10-12 17:30 UTC)
+  - PRD: `prds/category-agent-files.md`
+  - [x] One membership helper (`listPublicPackagesForCategory`) shared by the category page and the agent files, covering regular, curated and official categories
+  - [x] `/api/category-llms` and `/api/category-markdown` with 404 for disabled or unknown slugs, case-insensitive slugs, OPTIONS routes
+  - [x] Edge function proxies `/components/<slug>-llms.txt` and `/components/<slug>.md` after the existing exact routes
+  - [x] Root llms.txt and components.md list every category's files; markdown labels come from the database so renames show up
+  - [x] For Agents section on `CategoryPage.tsx`; agent file links and a slug rename warning in Admin > Category Management
+  - [x] Slug `components` reserved in `upsertCategory`
+  - [x] Verified: both typechecks pass, dev push ok, curl on dev for `ai`, `get-convex`, `test-yc`, `testyc2`, `AI`, `nope-xyz` and the root indexes
+  - [x] Prod compatibility check (2026-10-12 17:32 UTC): all existing agent file URLs route as before, no prod component slug matches the new pattern, and only the `components.md` and `get-convex.md` heading labels change (now from Admin)
 
 - [x] README badge matches the badge.fury.io npm badge (2026-10-12 16:59 UTC)
   - PRD: `prds/badge-fury-style-match.md`

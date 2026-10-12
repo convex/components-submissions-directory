@@ -83,6 +83,7 @@ import AiLoadingDots from "../components/AiLoadingDots";
 import DownloadsGrowthTab from "../components/DownloadsGrowthTab";
 import { AI_REVIEW_PROMPT_STATUS_LABEL } from "../../shared/aiReviewPromptMeta";
 import { parseRepoUrl, repoHostLabel } from "../../shared/repoUrl";
+import { buildCategoryClientUrls } from "../../shared/categoryUrls";
 import { navigate } from "../lib/router";
 
 // Review status type
@@ -5241,6 +5242,12 @@ function CategoryEditForm({
             }
             className="w-full text-xs px-2 py-1.5 rounded bg-bg-primary text-text-primary outline-none focus:ring-1 focus:ring-button disabled:opacity-60 disabled:cursor-not-allowed"
           />
+          {editingId && !slugLocked && (
+            <span className="mt-1 block text-[10px] text-text-secondary">
+              Changing the slug moves the category page and its agent files
+              (slug-llms.txt, slug.md). Old links stop working.
+            </span>
+          )}
         </div>
         <div>
           <label className="text-[10px] uppercase tracking-wider text-text-secondary mb-0.5 block">
@@ -5808,6 +5815,13 @@ function CategoryManagementPanel() {
           // Normal category row
           const isCurated = cat.kind === "curated";
           const isManaging = managingCuratedId === cat._id;
+          const agentUrls = cat.enabled
+            ? buildCategoryClientUrls(
+                cat.slug,
+                window.location.origin,
+                import.meta.env.VITE_CONVEX_URL as string | undefined,
+              )
+            : null;
           return (
             <div
               key={cat._id}
@@ -5873,6 +5887,27 @@ function CategoryManagementPanel() {
                   <p className="text-xs text-text-secondary break-words">
                     {cat.description}
                   </p>
+                  {/* Agent files are generated live for enabled categories */}
+                  {agentUrls && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-text-secondary">
+                      <span>Agent files:</span>
+                      {[
+                        { href: agentUrls.llmsUrl, label: `${cat.slug}-llms.txt` },
+                        { href: agentUrls.markdownUrl, label: `${cat.slug}.md` },
+                      ].map((file) => (
+                        <a
+                          key={file.label}
+                          href={file.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-mono hover:text-text-primary transition-colors"
+                        >
+                          {file.label}
+                          <ArrowSquareOut size={10} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex w-full items-center justify-end gap-1 shrink-0 sm:w-auto sm:justify-start">
                   {isCurated && (
