@@ -24,7 +24,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "clsx": "^2.1.1",
     "convex": "^1.46.0",
-    "convex-helpers": "^0.1.112",
+    "convex-helpers": "^0.1.128",
     "jimp": "^1.6.0",
     "mdast-util-from-markdown": "^2.0.2",
     "mdast-util-gfm": "^3.1.0",
