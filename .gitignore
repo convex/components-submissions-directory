@@ -28,8 +28,7 @@ prds/
 *.sln
 *.sw?
 
-# Ignored for the template, you probably want to remove it:
-package-lock.json
+# Local previews and reports
 badge-palette-preview.html
 component-report.html
 mockups/
