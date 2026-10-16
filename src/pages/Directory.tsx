@@ -18,6 +18,7 @@ import { readEntryState, useEntryState, useLocation } from "../lib/router";
 import { CaretSortIcon, ChevronDownIcon } from "@radix-ui/react-icons";
 import { Robot, FileText, ArrowSquareOut } from "@phosphor-icons/react";
 import { FEATURED_THUMBNAIL } from "../lib/images";
+import { githubOwnerAliases } from "../../shared/repoUrl";
 
 type SortBy = "newest" | "downloads" | "updated" | "rating" | "verified";
 
@@ -287,7 +288,8 @@ export default function Directory() {
           c.shortDescription.toLowerCase().includes(term)) ||
         (c.tags &&
           c.tags.some((t: string) => t.toLowerCase().includes(term))) ||
-        (c.authorUsername && c.authorUsername.toLowerCase().includes(term)),
+        (c.authorUsername &&
+          githubOwnerAliases(c.authorUsername).some((name) => name.includes(term))),
     );
   }, [components, searchTerm]);
 
@@ -1024,7 +1026,8 @@ export default function Directory() {
               </div>
               <p className="text-sm text-text-secondary mt-5 mb-4">
                 Only want official components built by the Convex team? These
-                lists include components from the get-convex GitHub org and the
+                lists include components from the convex GitHub org (formerly
+                get-convex) and the
                 @convex-dev npm scope.
               </p>
               <div className="flex flex-wrap gap-3">

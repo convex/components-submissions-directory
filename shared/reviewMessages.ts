@@ -120,9 +120,6 @@ export function buildApprovalMessage(args: {
     "",
     "Thanks for building it and sharing it with the community.",
     "",
-    "Shipping a new version? Run the Component Preflight Check first so your listing stays in good shape:",
-    PREFLIGHT_CHECK_URL,
-    "",
     "Questions or changes to the listing? Reply here.",
   ].join("\n");
 }

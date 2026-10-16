@@ -1,5 +1,11 @@
 # Task List
 
+Session updates complete on 2026-10-16 07:20 UTC. GitHub org rename (get-convex to convex) fixed on dev: owner alias in `parseRepoUrl`, avatar safety net, dead org links, copy, and the `orgRename` migration. No public URLs changed. Git remote now points at `convex/components-submissions-directory`. Convex MCP restarted and now targets `third-hedgehog-429` and `giant-grouse-674`. Prod deploy and migration wait on approval. PRD: `prds/convex-github-org-rename.md`.
+
+Session updates complete on 2026-10-16 06:30 UTC. Pulled `origin/main` (`18ed1d6` convex-helpers ^0.1.128, `50e7129` commit package-lock.json) with rebase and autostash. The unpushed docs commit and the uncommitted approval message change are on top. `npm install`, both typechecks and `vite build` pass. Backup branch `backup/pre-pull-2026-10-16`. The old ignored local lockfile was saved to `/tmp/package-lock.local-2026-09-09.json`.
+
+Session updates complete on 2026-10-15 20:45 UTC. Removed the "Shipping a new version? Run the Component Preflight Check" paragraph and link from the approval message template. Rejection messages still link the preflight check. Needs a Convex deploy for new approval drafts on prod.
+
 Session updates complete on 2026-10-12 17:30 UTC. Every enabled category now has auto-updating agent files at `/components/<slug>-llms.txt` and `/components/<slug>.md`, linked from a For Agents section at the bottom of each category page and from each row in Admin > Category Management. Root `llms.txt` and `components.md` list them. Deployed and verified on prod at 2026-10-12 17:55 UTC. PRD: `prds/category-agent-files.md`.
 
 Session updates complete on 2026-10-12 16:59 UTC. README badges now match the badge.fury.io npm badge that sits above them on convex.dev component pages: DejaVu Sans outlines, white stroke, crisp shadow, fury padding and kerning. Live on dev, needs a prod deploy.
@@ -27,6 +33,18 @@ Earlier session: 2026-09-24 01:46 UTC. Review outcome messages shipped to dev: f
 Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted everywhere GitHub ones are read: submit and edit validation, preflight, README fetch for content generation, issues list and counts, author avatar, markdown link rewriting, host icons and copy. GitHub write features (issue mirror, broadcast, reply sync) stay GitHub only. One backend file (`convex/aiReview.ts`) is blocked by a lint hook false positive; see the to do below.
 
 ## to do
+
+- [ ] Convex GitHub org rename, get-convex to convex (PRD: `prds/convex-github-org-rename.md`)
+  - [x] Git remote switched to `convex/components-submissions-directory` (2026-10-16 07:08 UTC)
+  - [x] Convex MCP restarted from this window, status shows this app's deployments (2026-10-16 07:08 UTC)
+  - [x] Owner alias in `shared/repoUrl.ts`, official rule accepts both orgs (2026-10-16 07:15 UTC)
+  - [x] Avatar alias, detail page author link, search alias, dead org links, copy (2026-10-16 07:15 UTC)
+  - [x] `convex/orgRename.ts` migration on dev: 24 repo URLs, 11 authors and avatars, category description; rerun changed nothing (2026-10-16 07:18 UTC)
+  - [x] App and `convex/` typechecks and `vite build` pass; dev official markdown header links `github.com/convex` (2026-10-16 07:19 UTC)
+  - [ ] Commit and push (waiting on approval)
+  - [ ] Prod: `npx convex deploy`, then `npx convex run --prod orgRename:migrateConvexOrgRename '{"dryRun":true}'` (expect 27 repo URLs, 28 authors and avatars), then `'{"dryRun":false}'`
+  - [ ] Netlify deploy from the push; confirm the site still tracks the renamed repo
+  - [ ] Prod curl: `get-convex.md`, `get-convex-llms.txt`, `categories/get-convex`, `llms.txt`, `components.md`, `/components/agent`, `/components/agent/agent.md`, `/components/agent/SKILL.md` return 200 and show `github.com/convex/`
 
 - [ ] Fury style badge: deploy Convex to prod (`npx convex deploy`), then open `https://www.convex.dev/components/badge/<slug>` for an approved component and check it matches the npm badge above it in the README. GitHub caches README images, so live READMEs can take a few minutes to update.
 
@@ -90,6 +108,16 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
   - Add an entry chunk size budget to CI
   - Add a post deploy check that `curl -I` on a hashed asset returns `immutable`
 ## completed
+
+- [x] Sync with upstream main (2026-10-16 06:30 UTC)
+  - [x] Pulled `18ed1d6` (convex-helpers ^0.1.128) and `50e7129` (package-lock.json now committed, removed from `.gitignore`)
+  - [x] Rebased unpushed `e8bbe0c` to `70c7f91`, autostash kept local edits
+  - [x] `npm install` resolves convex-helpers 0.1.128 with no lockfile drift; app and `convex/` typechecks and `vite build` pass
+
+- [x] Drop preflight check line from the approval message (2026-10-15 20:45 UTC)
+  - [x] Removed the "Shipping a new version?" line and `PREFLIGHT_CHECK_URL` from `buildApprovalMessage` in `shared/reviewMessages.ts`
+  - [x] Rejection message unchanged, still links the preflight check
+  - [x] App and `convex/` typechecks pass
 
 - [x] Per-category agent files and For Agents section (2026-10-12 17:30 UTC)
   - PRD: `prds/category-agent-files.md`

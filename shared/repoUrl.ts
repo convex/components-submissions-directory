@@ -26,6 +26,26 @@ export interface ParsedRepoUrl {
 
 const SEGMENT_PATTERN = /^[\w.-]+$/;
 
+// GitHub orgs that were renamed. GitHub redirects repo, raw and API URLs for
+// the old name, but the old org page and its .png avatar return 404.
+const GITHUB_OWNER_RENAMES: Record<string, string> = {
+  "get-convex": "convex",
+};
+
+/** Current GitHub owner for a possibly renamed org (case-insensitive). */
+export function canonicalGithubOwner(owner: string): string {
+  return GITHUB_OWNER_RENAMES[owner.toLowerCase()] ?? owner;
+}
+
+/** The owner plus any former names, lowercased, for search matching. */
+export function githubOwnerAliases(owner: string): Array<string> {
+  const current = canonicalGithubOwner(owner).toLowerCase();
+  const former = Object.keys(GITHUB_OWNER_RENAMES).filter(
+    (name) => GITHUB_OWNER_RENAMES[name] === current,
+  );
+  return [current, ...former];
+}
+
 function hostFor(hostname: string): RepoHost | null {
   const lower = hostname.toLowerCase();
   if (lower === "github.com" || lower === "www.github.com") return "github.com";
@@ -90,7 +110,8 @@ export function parseRepoUrl(input?: string | null): ParsedRepoUrl | null {
   // GitHub only ever has a single owner segment.
   if (host === "github.com" && ownerSegments.length !== 1) return null;
 
-  const owner = ownerSegments.join("/");
+  const owner =
+    host === "github.com" ? canonicalGithubOwner(ownerSegments[0]) : ownerSegments.join("/");
   const projectPath = `${owner}/${repo}`;
 
   let ref: string | undefined;

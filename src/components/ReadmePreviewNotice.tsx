@@ -6,7 +6,7 @@ interface ReadmePreviewNoticeProps {
 }
 
 const COMPONENT_TEMPLATE_URL =
-  "https://github.com/get-convex/templates/tree/main/template-component";
+  "https://github.com/convex/templates/tree/main/template-component";
 
 export default function ReadmePreviewNotice({
   readmeIncludeSource,

@@ -25,6 +25,7 @@ import type * as githubReplySync from "../githubReplySync.js";
 import type * as gitlabApi from "../gitlabApi.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
+import type * as orgRename from "../orgRename.js";
 import type * as packageMessaging from "../packageMessaging.js";
 import type * as packages from "../packages.js";
 import type * as payments from "../payments.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   gitlabApi: typeof gitlabApi;
   http: typeof http;
   notifications: typeof notifications;
+  orgRename: typeof orgRename;
   packageMessaging: typeof packageMessaging;
   packages: typeof packages;
   payments: typeof payments;

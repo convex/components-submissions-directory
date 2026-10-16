@@ -8218,7 +8218,7 @@ const OFFICIAL_CATEGORY_DEFAULTS = {
   slug: OFFICIAL_CATEGORY_SLUG,
   label: "Official Convex Components",
   description:
-    "Open-source components built and maintained by the Convex team in the get-convex GitHub org.",
+    "Open-source components built and maintained by the Convex team in the convex GitHub org.",
   sortOrder: -1,
 };
 

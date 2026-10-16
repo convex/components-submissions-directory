@@ -81,7 +81,7 @@ Every enabled category has its own llms.txt and markdown file, linked from the F
 | GET | `/components/:category-llms.txt` | Alias via edge function (for example `/components/ai-llms.txt`) |
 | GET | `/components/:category.md` | Alias via edge function (for example `/components/ai.md`) |
 
-`/components/get-convex-llms.txt` and `/components/get-convex.md` follow the same scheme for official components.
+`/components/get-convex-llms.txt` and `/components/get-convex.md` follow the same scheme for official components. The GitHub org is now `convex` (formerly `get-convex`); these URLs and the `/components/categories/get-convex` page keep the old slug and are not changing.
 
 ## Markdown endpoints
 

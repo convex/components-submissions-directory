@@ -933,7 +933,7 @@ function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/get-convex"
+                    href="https://github.com/convex"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-white hover:text-white/70 transition-colors inline-flex items-center">

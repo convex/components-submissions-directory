@@ -14,6 +14,10 @@ Defines project dependencies, scripts, and metadata. Includes React, Convex, Vit
 
 Key auth dependencies: `@convex-dev/workos` for Convex auth bridging with a custom Connect OAuth provider.
 
+### `package-lock.json`
+
+Committed npm lockfile (no longer gitignored as of upstream #47), so `npm install` resolves the same dependency tree for everyone.
+
 ### `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`
 
 TypeScript configuration files for different parts of the project. `tsconfig.app.json` is for the React app and `tsconfig.node.json` is for Node.js tooling (`vite.config.ts`). `tsconfig.json` has no files of its own, only references to those two, so type-check them with `tsc -b`; `tsc -p .` checks nothing.
@@ -596,15 +600,19 @@ The 14 AI review criteria (name, check, critical flag; first 9 critical) and `is
 
 ### `shared/reviewMessages.ts`
 
-Pure builders for review outcome messages. `buildRejectionMessage` lists blocking critical failures first, then advisory ones, skips "Unable to check" notes, falls back to the review summary, and ends with the Component Preflight Check link (`PREFLIGHT_CHECK_URL`) and the authoring guide. `buildApprovalMessage` includes the listing link from `directoryListingUrl`. `hasRejectionReasons` gates draft creation so no message ships without real reasons.
+Pure builders for review outcome messages. `buildRejectionMessage` lists blocking critical failures first, then advisory ones, skips "Unable to check" notes, falls back to the review summary, and ends with the Component Preflight Check link (`PREFLIGHT_CHECK_URL`) and the authoring guide. `buildApprovalMessage` includes the listing link from `directoryListingUrl` and no preflight link. `hasRejectionReasons` gates draft creation so no message ships without real reasons.
 
 ### `shared/repoUrl.ts`
 
-Single provider aware repository URL parser used by both the browser and the Convex runtime (URL API only, no Node). `parseRepoUrl` returns `{ provider: "github" | "gitlab", host, owner, repo, projectPath, ref?, dir, webUrl }` or `null`, accepting https, http, `www.`, `git+https://`, `git@host:` ssh, trailing `.git`, trailing slash, `#fragment`, GitHub `/tree/<ref>/<dir>` and `/blob/<ref>/<file>`, GitLab `/-/tree/<ref>/<dir>` and `/-/blob/<ref>/<file>`, and GitLab nested groups (project path is everything before `/-/`). Lookalike hosts (`notgithub.com`, `github.com.evil.com`) are rejected. Also exports `isSupportedRepoUrl`, `providerLabel` ("GitHub" | "GitLab"), `repoHostLabel(url)` for UI copy, and URL builders `repoBlobUrl`, `repoRawUrl` (`raw.githubusercontent.com` or `/-/raw/`), `repoIssuesUrl` (`/issues` or `/-/issues`), and `repoOwnerUrl`. Replaced six duplicated GitHub regexes across `packages.ts`, `seoContent.ts`, `http.ts`, `markdownLinks.ts`, and the submit pages. `convex/githubIssues.ts` keeps its own GitHub only gate so write flows never reach GitLab.
+Single provider aware repository URL parser used by both the browser and the Convex runtime (URL API only, no Node). `parseRepoUrl` returns `{ provider: "github" | "gitlab", host, owner, repo, projectPath, ref?, dir, webUrl }` or `null`, accepting https, http, `www.`, `git+https://`, `git@host:` ssh, trailing `.git`, trailing slash, `#fragment`, GitHub `/tree/<ref>/<dir>` and `/blob/<ref>/<file>`, GitLab `/-/tree/<ref>/<dir>` and `/-/blob/<ref>/<file>`, and GitLab nested groups (project path is everything before `/-/`). Lookalike hosts (`notgithub.com`, `github.com.evil.com`) are rejected. Also exports `isSupportedRepoUrl`, `providerLabel` ("GitHub" | "GitLab"), `repoHostLabel(url)` for UI copy, and URL builders `repoBlobUrl`, `repoRawUrl` (`raw.githubusercontent.com` or `/-/raw/`), `repoIssuesUrl` (`/issues` or `/-/issues`), and `repoOwnerUrl`. Replaced six duplicated GitHub regexes across `packages.ts`, `seoContent.ts`, `http.ts`, `markdownLinks.ts`, and the submit pages. `convex/githubIssues.ts` keeps its own GitHub only gate so write flows never reach GitLab. GitHub owners pass through `GITHUB_OWNER_RENAMES` (`get-convex` to `convex`), so `parseRepoUrl` always returns the current org; `canonicalGithubOwner` and `githubOwnerAliases` (for search) are exported too.
+
+### `convex/orgRename.ts`
+
+One-off internal migration `migrateConvexOrgRename({ dryRun })` for the GitHub org rename. Rewrites `repositoryUrl` (`github.com/get-convex/` to `github.com/convex/`), `authorUsername` and `authorAvatar` on packages, and the official category description. Slugs and public URLs are untouched. Running it again changes nothing. Run with `npx convex run orgRename:migrateConvexOrgRename '{"dryRun":true}'` (add `--prod` for production).
 
 ### `shared/officialComponents.ts`
 
-Single definition of an "official" Convex component: repo in the `github.com/get-convex` org, or an `@convex-dev/` scoped npm name. Exports `OFFICIAL_CATEGORY_SLUG` (`"get-convex"`) and `isOfficialComponent()`. Used by the derived official category in `convex/packages.ts` (count, landing page, and listing membership) and by the official-only endpoints in `convex/http.ts` (`/components/get-convex-llms.txt`, `/components/get-convex.md`).
+Single definition of an "official" Convex component: repo in the `github.com/convex` org (or its former name `get-convex`), or an `@convex-dev/` scoped npm name. Exports `OFFICIAL_CATEGORY_SLUG` (`"get-convex"`, kept because it is part of public URLs) and `isOfficialComponent()`. Used by the derived official category in `convex/packages.ts` (count, landing page, and listing membership) and by the official-only endpoints in `convex/http.ts` (`/components/get-convex-llms.txt`, `/components/get-convex.md`).
 
 ### `shared/normalizeMarkdown.ts`
 
@@ -761,7 +769,7 @@ Module-level `ConvexHttpClient`, `fetchDirectoryPage(sortBy, category?)`, and th
 
 ### `src/lib/images.ts`
 
-Image URL helpers for public pages. `thumbnailImageProps(url, sizing)` turns a Convex storage thumbnail URL into `src`/`srcSet`/`sizes` pointing at the `/components/_img/<width>/<storageId>` Netlify Image CDN rewrite (production builds only), with an `onError` that falls back to the original URL. Sizing presets: `CARD_THUMBNAIL`, `LIST_ROW_THUMBNAIL`, `DETAIL_THUMBNAIL`. `avatarUrl(url)` adds `?size=64` to `https://github.com/<name>.png` avatars (the direct `avatars.githubusercontent.com/<name>` form is avoided because it returns a placeholder for organisations).
+Image URL helpers for public pages. `thumbnailImageProps(url, sizing)` turns a Convex storage thumbnail URL into `src`/`srcSet`/`sizes` pointing at the `/components/_img/<width>/<storageId>` Netlify Image CDN rewrite (production builds only), with an `onError` that falls back to the original URL. Sizing presets: `CARD_THUMBNAIL`, `LIST_ROW_THUMBNAIL`, `DETAIL_THUMBNAIL`. `avatarUrl(url)` maps renamed GitHub orgs (`get-convex` to `convex`) and adds `?size=64` to `https://github.com/<name>.png` avatars (the direct `avatars.githubusercontent.com/<name>` form is avoided because it returns a placeholder for organisations).
 
 ### `src/lib/categories.ts`
 

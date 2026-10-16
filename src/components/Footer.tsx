@@ -99,7 +99,7 @@ const categoriesWithLinks: FooterCategory[] = [
       },
       {
         label: "GitHub",
-        href: "https://github.com/get-convex",
+        href: "https://github.com/convex",
         icon: "/components/github.svg",
         isExternal: true,
       },

@@ -1,4 +1,5 @@
 import type { SyntheticEvent } from "react";
+import { canonicalGithubOwner } from "../../shared/repoUrl";
 
 // Component thumbnails live in Convex storage as full-size PNGs (median
 // 2.4 MB, some 3840x2160) but render at most ~360px wide in the directory.
@@ -82,10 +83,13 @@ export function thumbnailImageProps(url: string, sizing: ThumbnailSizing) {
 // to the full-size image (often 460px, ~60 KB) for a 16-28px slot. ?size=
 // keeps the redirect but returns a small image. The direct
 // avatars.githubusercontent.com/<name> form is not used because it returns a
-// placeholder for organisations such as get-convex.
-const GITHUB_AVATAR_RE = /^https:\/\/github\.com\/[^/?#]+\.png$/;
+// placeholder for organisations such as convex.
+// Renamed orgs (get-convex) 404 on the old .png, so the owner is mapped first.
+const GITHUB_AVATAR_RE = /^https:\/\/github\.com\/([^/?#]+)\.png$/;
 const AVATAR_SIZE = 64;
 
 export function avatarUrl(url: string): string {
-  return GITHUB_AVATAR_RE.test(url) ? `${url}?size=${AVATAR_SIZE}` : url;
+  const match = url.match(GITHUB_AVATAR_RE);
+  if (!match) return url;
+  return `https://github.com/${canonicalGithubOwner(match[1])}.png?size=${AVATAR_SIZE}`;
 }

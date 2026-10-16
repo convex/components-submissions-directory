@@ -625,7 +625,7 @@ export function ComponentDetailsEditor({
                 type="text"
                 value={authorUsername}
                 onChange={(e) => setAuthorUsername(e.target.value)}
-                placeholder="get-convex"
+                placeholder="convex"
                 className="min-w-0 w-full sm:flex-1 text-xs px-2 py-1.5 rounded bg-bg-primary text-text-primary outline-none focus:ring-1 focus:ring-button"
               />
               <button
@@ -649,7 +649,7 @@ export function ComponentDetailsEditor({
               type="text"
               value={authorAvatar}
               onChange={(e) => setAuthorAvatar(e.target.value)}
-              placeholder="https://github.com/get-convex.png"
+              placeholder="https://github.com/convex.png"
               className="w-full text-xs px-2 py-1.5 rounded bg-bg-primary text-text-primary outline-none focus:ring-1 focus:ring-button"
             />
           </div>

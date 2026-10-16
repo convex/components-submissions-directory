@@ -5655,8 +5655,9 @@ function CategoryManagementPanel() {
               )}
             </div>
             <p className="text-xs text-text-secondary">
-              A top level category filled automatically from the get-convex GitHub
-              org and the @convex-dev npm scope. Components keep their existing
+              A top level category filled automatically from the convex GitHub
+              org (formerly get-convex) and the @convex-dev npm scope. The slug
+              stays get-convex so existing URLs keep working. Components keep their existing
               category and also appear here, so it is never offered as a choice in
               category pickers.
             </p>

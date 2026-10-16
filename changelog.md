@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Official components show the Convex avatar and author link again after the GitHub org rename (2026-10-16 07:20 UTC)
+  - GitHub renamed `get-convex` to `convex`. Repo URLs still redirect, but `github.com/get-convex.png` and `github.com/get-convex` return 404, so 28 official cards had a broken avatar and a dead author link.
+  - `parseRepoUrl` maps `get-convex` to `convex` for GitHub owners, so new submissions, admin auto-fill, the author link and GitHub API calls use the current org even when npm metadata still says `get-convex`. Avatars are mapped at render time as a safety net.
+  - Official membership accepts both org names. Directory search for "get-convex" still finds the official components.
+  - Header, footer, submit page and README template links point at `github.com/convex`. The official llms.txt and markdown headers link to `github.com/convex`.
+  - No URLs changed: `/components/categories/get-convex`, `/components/get-convex.md`, `/components/get-convex-llms.txt` and every component page, markdown, llms.txt and SKILL.md route stay the same.
+  - New `convex/orgRename.ts` migration rewrites stored repo URLs, author names, avatars and the official category description. Verified on dev: 24 repo URLs and 11 authors updated, rerun changed nothing.
+  - Files: `shared/repoUrl.ts`, `shared/officialComponents.ts`, `src/lib/images.ts`, `src/pages/ComponentDetail.tsx`, `src/pages/Directory.tsx`, `src/pages/Admin.tsx`, `src/pages/Submit.tsx`, `src/components/Header.tsx`, `src/components/Footer.tsx`, `src/components/FooterBackup.tsx`, `src/components/ReadmePreviewNotice.tsx`, `src/components/ComponentDetailsEditor.tsx`, `convex/http.ts`, `convex/packages.ts`, `convex/orgRename.ts` (new), `src/docs/api-endpoints.md`
+
 ### Added
 
 - Every category gets its own llms.txt and markdown file (2026-10-12 17:30 UTC)
@@ -18,6 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files: `convex/packages.ts`, `convex/http.ts`, `shared/categoryUrls.ts` (new), `netlify/edge-functions/og-meta.ts`, `src/pages/CategoryPage.tsx`, `src/pages/Admin.tsx`, `src/docs/api-endpoints.md`
 
 ### Changed
+
+- `convex-helpers` bumped to ^0.1.128 and `package-lock.json` is now committed (2026-10-13, pulled 2026-10-16 06:30 UTC)
+  - From upstream #46 and #47. `package-lock.json` is no longer in `.gitignore`, so `npm install` gives everyone the same dependency tree.
+  - Files: `package.json`, `package-lock.json`, `.gitignore`
+
+- Approval messages no longer mention the preflight check (2026-10-15 20:45 UTC)
+  - Removed the "Shipping a new version? Run the Component Preflight Check first..." paragraph and its link from the approved component message. It now ends with the thank you and the "Questions or changes to the listing? Reply here." line.
+  - Rejection messages still point to the preflight check. Drafts already saved in User Messages keep their old text until edited or regenerated.
+  - Files: `shared/reviewMessages.ts`
 
 - Existing agent files keep their URLs, with small content updates (2026-10-12 17:32 UTC)
   - Checked against prod: `llms.txt`, `components.md`, `get-convex-llms.txt`, `get-convex.md`, `sitemap.xml` and every `/components/<slug>/llms.txt` and `/components/<slug>/<leaf>.md` route the same way as before. No prod component slug matches the new single segment pattern, and `/components/<category>.md` only served the HTML app shell before.

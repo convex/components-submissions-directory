@@ -32,6 +32,7 @@ import {
 } from "../lib/seo";
 import { RepoHostIcon } from "../components/RepoHostIcon";
 import {
+  canonicalGithubOwner,
   parseRepoUrl,
   repoHostLabel,
   repoIssuesUrl,
@@ -1046,7 +1047,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
   const authorGitHubUrl = parsedComponentRepo
     ? repoOwnerUrl(parsedComponentRepo)
     : component?.authorUsername
-      ? `https://github.com/${component.authorUsername}`
+      ? `https://github.com/${canonicalGithubOwner(component.authorUsername)}`
       : null;
   const resolvedCategory = component?.category
     ? (dynamicCategories.find((category) => category.id === component.category) ?? null)
@@ -1463,7 +1464,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
               <a
                 href={
                   component.repositoryUrl ||
-                  `https://github.com/${component.authorUsername}/${component.name}`
+                  `https://github.com/${canonicalGithubOwner(component.authorUsername ?? "")}/${component.name}`
                 }
                 target="_blank"
                 rel="noopener noreferrer"

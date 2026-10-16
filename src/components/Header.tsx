@@ -373,7 +373,7 @@ export default function Header({ viewMode, onViewModeChange }: HeaderProps) {
                 <FileTextIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://github.com/get-convex/convex-backend"
+                href="https://github.com/convex/convex-backend"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
@@ -559,7 +559,7 @@ export default function Header({ viewMode, onViewModeChange }: HeaderProps) {
                 <FileTextIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://github.com/get-convex"
+                href="https://github.com/convex"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">

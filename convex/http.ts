@@ -192,7 +192,7 @@ http.route({
     const body = buildLlmsTxtBody(official, {
       title: "Convex Official Components",
       intro:
-        "Open-source components built by the Convex team (github.com/get-convex).",
+        "Open-source components built by the Convex team (github.com/convex).",
       extraHeaderLines: [
         `Full directory including community components: ${DIRECTORY_ORIGIN}/components/llms.txt`,
       ],
@@ -621,7 +621,7 @@ http.route({
     const body = buildMarkdownIndexBody(official, {
       title: "Convex Official Components",
       intro:
-        "Open-source components built by the Convex team ([github.com/get-convex](https://github.com/get-convex)). For the full directory including community components, see [components.md](https://www.convex.dev/components/components.md).",
+        "Open-source components built by the Convex team ([github.com/convex](https://github.com/convex)). For the full directory including community components, see [components.md](https://www.convex.dev/components/components.md).",
       categories,
     });
 

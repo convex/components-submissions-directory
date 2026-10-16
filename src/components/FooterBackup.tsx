@@ -12,7 +12,7 @@ export default function Footer() {
           </a>
           <div className="flex items-center gap-6">
             <a
-              href="https://github.com/get-convex/convex-backend"
+              href="https://github.com/convex/convex-backend"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-text-secondary hover:text-text-primary transition-colors">
