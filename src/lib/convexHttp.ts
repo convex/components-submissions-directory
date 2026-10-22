@@ -52,6 +52,32 @@ const componentResults = new Map<
   { value: ComponentBySlug; loadedAt: number }
 >();
 
+// On a component page the og-meta edge function embeds the component it
+// already looked up (see injectComponentData there), so the first render
+// doesn't wait on another request. Read once at startup and removed, so it
+// only ever seeds the slug it was fetched for. useComponentBySlug still
+// fetches and subscribes as usual, which replaces it if the cached HTML was
+// out of date.
+function seedFromEdgeData() {
+  const el = document.getElementById("component-data");
+  if (!el) return;
+  el.remove();
+  try {
+    const { slug, value } = JSON.parse(el.textContent ?? "") as {
+      slug: unknown;
+      value: JSONValue;
+    };
+    if (typeof slug !== "string" || !value) return;
+    componentResults.set(slug, {
+      value: jsonToConvex(value) as ComponentBySlug,
+      loadedAt: Date.now(),
+    });
+  } catch {
+    // Malformed block: the page loads its data the usual way
+  }
+}
+seedFromEdgeData();
+
 function freshResult(slug: string) {
   const result = componentResults.get(slug);
   return result && Date.now() - result.loadedAt < COMPONENT_REQUEST_TTL_MS
