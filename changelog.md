@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Component pages load faster on a cold visit (2026-10-22 05:30 UTC)
+  - og-meta now sends `Netlify-CDN-Cache-Control: public, s-maxage=3600` for approved component pages (was an `s-maxage=300` in Cache-Control only). Netlify's edge cache is per node and a region has several nodes, so with ~180 components most cold visits missed it and waited ~1s TTFB on the Convex lookup (0.21-0.24s on a hit). Netlify ignores `durable` and `stale-while-revalidate` for edge function responses, so a longer per-node lifetime is the lever. OG/SEO tags, the hidden prerender copy and the embedded component data can lag an edit by up to an hour; the client loads live data straight after the first render, and deploys purge the cache. Browser `Cache-Control` is unchanged. 404s, Convex lookup failures and non-component routes are still not cached.
+  - og-meta drops the static index.html's `ETag` and `Content-Length` from component pages it rewrites. Every component page shared one ETag for the whole deploy, so a browser revalidating after `max-age` could be told an older copy was current.
+  - og-meta also embeds the component it already fetched as `<script type="application/json" id="component-data">` before `</body>`, with `<`, `>`, `&`, U+2028 and U+2029 escaped. `useComponentBySlug` starts from it for that slug, so the first render no longer waits on the CORS-preflighted `/api/query` POST (OPTIONS ~0.38s then POST ~0.36-0.50s from Perth). The HTTP query and live subscription still run as before and replace it. The block is read once and removed, so client-side navigation to other components is unaffected. It isn't executable, so the CSP's script hashes don't apply.
+  - Files: `netlify/edge-functions/og-meta.ts`, `src/lib/convexHttp.ts`, `tests/og-meta-component-data.test.ts` (new)
+
 ### Fixed
 
 - Logos, social icons and favicons are cached, and directory links skip the www trailing slash redirect (2026-10-22 05:30 UTC)

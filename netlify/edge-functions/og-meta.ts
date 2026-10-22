@@ -181,6 +181,39 @@ function injectRootContent(html: string, innerHtml: string): string {
   );
 }
 
+// Serialize a value for a <script type="application/json"> block. JSON.parse
+// reads the unicode escapes back as the same characters, but the HTML parser
+// never sees a literal "<", so component text like "</script>" or "<!--"
+// can't close the tag or open a comment. U+2028/U+2029 are escaped too so
+// the text stays safe if it ever ends up in a JS context.
+export function serializeJsonForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+// Hand the component the edge already fetched to the client, so the first
+// render doesn't wait on a second (CORS-preflighted) request to Convex.
+// src/lib/convexHttp.ts reads it once for this slug, then fetches and
+// subscribes to live data as usual. Goes before </body>, not in #root, which
+// createRoot() clears and which may hold a static skeleton.
+export function injectComponentData(
+  html: string,
+  slug: string,
+  value: unknown
+): string {
+  const block = `<script type="application/json" id="component-data">${serializeJsonForScript({ slug, value })}</script>`;
+  // A replacer function, not a string: in a replacement string "$'", "$`",
+  // "$&" and "$$" are patterns, and component text (bash snippets, prices)
+  // can contain them
+  return html.includes("</body>")
+    ? html.replace("</body>", () => `${block}\n</body>`)
+    : html;
+}
+
 interface ComponentData {
   componentName?: string;
   name: string;
@@ -207,6 +240,10 @@ function getRobotsContent(reviewStatus?: ReviewStatus): string {
   return reviewStatus === "approved" ? "index, follow" : "noindex, nofollow";
 }
 
+// format "json" and the client's "convex_encoded_json" encode this query's
+// result the same way: it only holds strings, finite numbers, booleans,
+// arrays and objects (no int64 or bytes). The client still runs jsonToConvex
+// on the embedded copy, like ConvexHttpClient does.
 async function fetchComponent(
   slug: string
 ): Promise<ComponentData | null | undefined> {
@@ -546,14 +583,38 @@ export default async (
     modifiedHtml,
     renderComponentSeoBody(component)
   );
+  modifiedHtml = injectComponentData(modifiedHtml, slug, component);
 
   // Preserve original headers but update content-type and caching
   const headers = new Headers(response.headers);
   headers.set("content-type", "text/html; charset=utf-8");
+  // The static index.html's ETag and length don't describe this page: every
+  // component page would share one ETag for the whole deploy, so a browser
+  // revalidating after max-age could be told its older copy is current
+  headers.delete("etag");
+  headers.delete("content-length");
   headers.set(
     "cache-control",
     "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
   );
+  // With s-maxage=300 most cold visits missed Netlify's edge cache and waited
+  // ~1s on the Convex lookup: the cache is per edge node, a region has several
+  // nodes, and with ~180 components a node rarely has a page from the last
+  // five minutes. Keep approved pages for an hour instead. Netlify uses this
+  // header over Cache-Control and doesn't pass it on, so browsers still get the
+  // short max-age above. (durable and stale-while-revalidate would be nicer,
+  // but Netlify ignores both for edge function responses: an expired copy is
+  // refetched while the visitor waits.)
+  //
+  // The trade-off: the OG/SEO tags, the hidden prerender copy and the embedded
+  // component data can lag an edit by up to an hour. The client fetches and
+  // subscribes to live data straight after the first render, so visitors only
+  // see an old copy for a moment, and deploys purge the cache. Only approved
+  // components get here as a 200 (the lookup is signed out), and 404s and
+  // Convex errors above keep their uncached headers.
+  if (component.reviewStatus === "approved") {
+    headers.set("netlify-cdn-cache-control", "public, s-maxage=3600");
+  }
 
   return new Response(modifiedHtml, {
     status: response.status,
