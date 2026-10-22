@@ -266,7 +266,7 @@ export default function Header({ viewMode, onViewModeChange }: HeaderProps) {
             <nav className="hidden sm:flex items-center gap-5">
               {renderViewToggle()}
               <a
-                href={`${basePath}/`}
+                href={basePath}
                 className="text-sm font-medium text-text-primary hover:text-text-secondary transition-colors">
                 Directory
               </a>
@@ -493,7 +493,7 @@ export default function Header({ viewMode, onViewModeChange }: HeaderProps) {
         <div className="sm:hidden max-w-7xl mx-auto mt-2 px-4">
           <nav className="bg-white/95 backdrop-blur-sm border border-border rounded-2xl shadow-sm p-4 flex flex-col gap-2">
             <a
-              href={`${basePath}/`}
+              href={basePath}
               className="px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-hover rounded-lg transition-colors">
               Directory
             </a>

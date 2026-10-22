@@ -73,7 +73,8 @@ class PageErrorBoundary extends Component<
   }
 }
 
-const DIRECTORY_ROOT_HREF = "/components/";
+// No trailing slash: www.convex.dev redirects /components/ to /components
+const DIRECTORY_ROOT_HREF = "/components";
 
 // verbose logging removed: it wrote every websocket message to the production
 // console (flagged by Lighthouse Best Practices and real main-thread cost)
@@ -133,7 +134,7 @@ function Router() {
 
   // Redirect paths that don't start with /components to the prefixed version
   if (!path.startsWith(basePath)) {
-    const redirectPath = DIRECTORY_ROOT_HREF + (path === "/" ? "" : path.replace(/^\//, ""));
+    const redirectPath = DIRECTORY_ROOT_HREF + (path === "/" ? "" : path);
     window.location.replace(redirectPath);
     return null;
   }

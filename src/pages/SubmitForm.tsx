@@ -112,7 +112,7 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
                 View My Submissions
               </a>
               <a
-                href={`${basePath}/`}
+                href={basePath}
                 className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium border border-border text-text-primary hover:bg-bg-hover transition-colors">
                 Back to Directory
               </a>

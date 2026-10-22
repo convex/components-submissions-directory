@@ -52,7 +52,7 @@ Click a category in the sidebar to view its landing page. Categories include:
 
 The count next to each category shows how many approved components exist. A separate verified count shows how many in that category carry the Convex Verified badge.
 
-Desktop sidebar categories and mobile category pills link directly to category landing pages at `/components/categories/:slug`. The root "All" link points to `/components/`.
+Desktop sidebar categories and mobile category pills link directly to category landing pages at `/components/categories/:slug`. The root "All" link points to `/components` (no trailing slash, because www.convex.dev redirects `/components/` to `/components`).
 
 ## Category landing pages
 

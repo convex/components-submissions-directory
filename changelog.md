@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Logos, social icons and favicons are cached, and directory links skip the www trailing slash redirect (2026-10-22 05:30 UTC)
+  - The root SVGs and favicons under `/components/` went through the `og-meta` edge function, which passed them straight through with `max-age=0, must-revalidate`, so every visit revalidated them. `og-meta` now skips `/components/*.svg`, `*.png`, `*.ico` and `*.webp` via `excludedPath`, and `netlify/_headers` gives the linked files `public, max-age=86400, stale-while-revalidate=604800` (not immutable, since they are not content-hashed).
+  - Favicon links in `index.html` were relative, so they resolved against the page URL: from `www.convex.dev/components` they pointed at the Next.js site's root, and from `/components/categories/<slug>` at SPA routes that return HTML. They now start with `/`, which Vite turns into `/components/...`. The duplicate `shortcut icon` link is gone and the 128px link points at the real `favicon-128x128.png`.
+  - The "All" and "Directory" links, the redirect targets, header search and the component page's back and category links point at `/components` instead of `/components/`, which www.convex.dev 308 redirects. The router and the catalog prefetch already treat both as the same page.
+  - Files: `netlify.toml`, `netlify/_headers`, `index.html`, `src/main.tsx`, `src/components/CategorySidebar.tsx`, `src/components/Header.tsx`, `src/components/HeaderSearch.tsx`, `src/pages/Directory.tsx`, `src/pages/CategoryPage.tsx`, `src/pages/ComponentDetail.tsx`, `src/pages/SubmitForm.tsx`, `src/pages/Documentation.tsx`, `src/docs/directory.md`
+
 - Official components show the Convex avatar and author link again after the GitHub org rename (2026-10-16 07:20 UTC)
   - GitHub renamed `get-convex` to `convex`. Repo URLs still redirect, but `github.com/get-convex.png` and `github.com/get-convex` return 404, so 28 official cards had a broken avatar and a dead author link.
   - `parseRepoUrl` maps `get-convex` to `convex` for GitHub owners, so new submissions, admin auto-fill, the author link and GitHub API calls use the current org even when npm metadata still says `get-convex`. Avatars are mapped at render time as a safety net.
