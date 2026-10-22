@@ -20,6 +20,13 @@
 # Components REST API
 /api/components/*       https://giant-grouse-674.convex.site/api/components/:splat     200!
 
+# Build files that don't exist (an old chunk asked for by a tab left open
+# across a deploy) get a 404 instead of the SPA's index.html with the
+# immutable assets cache header, so the import fails fast and the chunk
+# loader can reload the page (src/lib/chunkLoader.ts). Rules without "!"
+# never shadow files that exist.
+/components/assets/*    /404.html                                                     404
+
 # Image URLs referenced in component descriptions don't exist as files;
 # without this rule the SPA fallback serves index.html as duplicate pages
 /components/images/*    /404.html                                                     404
