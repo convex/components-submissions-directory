@@ -12,6 +12,7 @@ import {
   CATALOG_REFRESH_AFTER_MS,
   fetchDirectoryPage,
   getCachedDirectoryPage,
+  whenIdle,
   type DirectoryPageData,
 } from "../lib/convexHttp";
 import { readEntryState, useEntryState, useLocation } from "../lib/router";
@@ -194,25 +195,48 @@ export default function Directory() {
   const lastLoadedAt = useRef(cached?.loadedAt ?? 0);
   // Aborted when a newer load starts, so a superseded one stops retrying
   const loadController = useRef<AbortController | null>(null);
-  const fetchData = useCallback(async () => {
-    const gen = ++fetchGeneration.current;
-    fetchInFlight.current = true;
-    loadController.current?.abort();
-    const controller = new AbortController();
-    loadController.current = controller;
-    try {
-      const data = await fetchDirectoryPage(sortBy, undefined, controller.signal);
-      if (gen !== fetchGeneration.current) return;
-      lastLoadedAt.current = Date.now();
-      applyData(data);
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      // Keep whatever is on screen; the next focus or visibility change retries
-      console.error("[Directory] Failed to load components", error);
-    } finally {
-      if (gen === fetchGeneration.current) fetchInFlight.current = false;
-    }
-  }, [sortBy, applyData]);
+  // Cancels a background refresh still waiting for the browser to go idle
+  const cancelIdleRefresh = useRef<(() => void) | null>(null);
+  const fetchData = useCallback(
+    async ({ direct = false }: { direct?: boolean } = {}) => {
+      const gen = ++fetchGeneration.current;
+      cancelIdleRefresh.current?.();
+      fetchInFlight.current = true;
+      loadController.current?.abort();
+      const controller = new AbortController();
+      loadController.current = controller;
+      try {
+        const page = await fetchDirectoryPage(
+          sortBy,
+          undefined,
+          controller.signal,
+          { direct },
+        );
+        if (gen !== fetchGeneration.current) return;
+        lastLoadedAt.current = page.loadedAt;
+        // Usually a background refresh finds nothing new: leave the grid be
+        if (!page.unchanged) applyData(page.data);
+        // An edge cache copy over a minute old: keep it on screen and fetch
+        // the current catalog from Convex itself once the browser is idle.
+        // That load takes over the generation, so a sort change drops it.
+        if (!direct && Date.now() - page.loadedAt >= CATALOG_REFRESH_AFTER_MS) {
+          cancelIdleRefresh.current = whenIdle(() => {
+            cancelIdleRefresh.current = null;
+            if (gen === fetchGeneration.current) {
+              void fetchData({ direct: true });
+            }
+          });
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        // Keep whatever is on screen; the next focus or visibility change retries
+        console.error("[Directory] Failed to load components", error);
+      } finally {
+        if (gen === fetchGeneration.current) fetchInFlight.current = false;
+      }
+    },
+    [sortBy, applyData],
+  );
 
   useEffect(() => {
     // Show this sort's cached catalog straight away and only refetch when it's
@@ -221,6 +245,7 @@ export default function Directory() {
     const cachedPage = getCachedDirectoryPage(sortBy);
     if (cachedPage) {
       fetchGeneration.current += 1;
+      cancelIdleRefresh.current?.();
       fetchInFlight.current = false;
       loadController.current?.abort();
       applyData(cachedPage.data);
@@ -230,18 +255,25 @@ export default function Directory() {
     void fetchData();
   }, [fetchData, sortBy, applyData]);
 
-  useEffect(() => () => loadController.current?.abort(), []);
+  useEffect(
+    () => () => {
+      loadController.current?.abort();
+      cancelIdleRefresh.current?.();
+    },
+    [],
+  );
 
   useEffect(() => {
     // Refetch when the page becomes active again so recently refreshed npm
     // counts show up without a live subscription. Skip while a request is in
     // flight (a new one would throw away the prefetched response) and while
     // the data is under a minute old. pageshow also fires on every normal
-    // load, so only react to back/forward cache restores.
+    // load, so only react to back/forward cache restores. The data is already
+    // on screen, so ask Convex directly rather than a possibly older edge copy.
     const refreshIfStale = () => {
       if (fetchInFlight.current) return;
       if (Date.now() - lastLoadedAt.current < CATALOG_REFRESH_AFTER_MS) return;
-      void fetchData();
+      void fetchData({ direct: true });
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {

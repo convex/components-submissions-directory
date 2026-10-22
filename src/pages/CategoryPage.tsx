@@ -9,6 +9,7 @@ import {
   CATALOG_REFRESH_AFTER_MS,
   fetchDirectoryPage,
   getCachedDirectoryPage,
+  whenIdle,
   type DirectoryPageData,
 } from "../lib/convexHttp";
 import {
@@ -157,24 +158,42 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   const fetchGeneration = useRef(0);
   // Aborted when a newer load starts, so a superseded one stops retrying
   const loadController = useRef<AbortController | null>(null);
-  const fetchData = useCallback(async () => {
-    const gen = ++fetchGeneration.current;
-    loadController.current?.abort();
-    const controller = new AbortController();
-    loadController.current = controller;
-    try {
-      const data = await fetchDirectoryPage(
-        sortBy,
-        categorySlug,
-        controller.signal,
-      );
-      if (gen !== fetchGeneration.current) return;
-      applyData(data);
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      console.error("[CategoryPage] Failed to load components", error);
-    }
-  }, [categorySlug, sortBy, applyData]);
+  // Cancels a background refresh still waiting for the browser to go idle
+  const cancelIdleRefresh = useRef<(() => void) | null>(null);
+  const fetchData = useCallback(
+    async ({ direct = false }: { direct?: boolean } = {}) => {
+      const gen = ++fetchGeneration.current;
+      cancelIdleRefresh.current?.();
+      loadController.current?.abort();
+      const controller = new AbortController();
+      loadController.current = controller;
+      try {
+        const page = await fetchDirectoryPage(
+          sortBy,
+          categorySlug,
+          controller.signal,
+          { direct },
+        );
+        if (gen !== fetchGeneration.current) return;
+        if (!page.unchanged) applyData(page.data);
+        // An edge cache copy over a minute old: keep it on screen and fetch
+        // the current catalog from Convex itself once the browser is idle
+        // (see Directory.tsx)
+        if (!direct && Date.now() - page.loadedAt >= CATALOG_REFRESH_AFTER_MS) {
+          cancelIdleRefresh.current = whenIdle(() => {
+            cancelIdleRefresh.current = null;
+            if (gen === fetchGeneration.current) {
+              void fetchData({ direct: true });
+            }
+          });
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error("[CategoryPage] Failed to load components", error);
+      }
+    },
+    [categorySlug, sortBy, applyData],
+  );
 
   useEffect(() => {
     // Use this sort's cached catalog straight away and only refetch when it's
@@ -182,6 +201,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     const cachedPage = getCachedDirectoryPage(sortBy, categorySlug);
     if (cachedPage) {
       fetchGeneration.current += 1;
+      cancelIdleRefresh.current?.();
       loadController.current?.abort();
       applyData(cachedPage.data);
       if (Date.now() - cachedPage.loadedAt < CATALOG_REFRESH_AFTER_MS) return;
@@ -189,7 +209,13 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     void fetchData();
   }, [fetchData, sortBy, categorySlug, applyData]);
 
-  useEffect(() => () => loadController.current?.abort(), []);
+  useEffect(
+    () => () => {
+      loadController.current?.abort();
+      cancelIdleRefresh.current?.();
+    },
+    [],
+  );
 
   // Set page SEO based on category
   useEffect(() => {
