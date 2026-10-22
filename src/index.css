@@ -506,3 +506,45 @@
   --wa-banner-accept-background-color: theme("colors.button.DEFAULT");
   --wa-banner-accept-text-color: #ffffff;
 }
+
+/* Static shell in index.html, painted before the JS runs. The inline script
+   before it sets data-shell on <html> from the URL, and these rules hide the
+   parts that don't belong on the current route: pages other than the
+   directory and categories get the header only, or nothing where React
+   renders no header. React replaces the shell when it mounts. */
+html[data-shell="bare"] .shell,
+html:not([data-shell]) .shell-listing,
+html:not([data-shell="directory"]) .shell-directory,
+html:not([data-shell="category"]) .shell-category,
+html[data-shell-view="list"] .shell-grid-view,
+html:not([data-shell-view="list"]) .shell-list-view,
+html[data-shell-cached] .shell-cards {
+  display: none !important;
+}
+
+/* CategoryPage shows the raw slug as its title until the catalog arrives */
+.shell-slug::before {
+  content: var(--shell-slug);
+}
+
+/* Class lists the shell repeats, kept here so the HTML (fetched on every
+   visit) stays small. Each one copies the classes of the element it stands
+   in for: the inputs in SearchBar.tsx, and the sort buttons and loading
+   cards in Directory.tsx and CategoryPage.tsx. */
+@layer components {
+  .shell-input {
+    @apply w-full pl-9 pr-8 py-2 text-sm rounded-lg bg-white border border-border focus:outline-none focus:ring-1 focus:ring-button transition-colors placeholder:text-text-secondary;
+  }
+  .shell-sort {
+    @apply flex items-center gap-2 text-sm bg-bg-primary rounded-md px-3 py-1.5 text-text-primary focus:outline-none focus:ring-1 focus:ring-button cursor-pointer border transition-colors;
+  }
+  .shell-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3;
+  }
+  .shell-card {
+    @apply flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-sm motion-safe:animate-pulse;
+  }
+  .shell-card-sm {
+    @apply rounded-lg bg-white h-[84px] motion-safe:animate-pulse;
+  }
+}
