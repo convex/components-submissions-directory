@@ -172,13 +172,20 @@ function renderComponentSeoBody(c: ComponentData): string {
   return `<div data-seo-prerender style="${SEO_WRAP_STYLE}">${parts.join("")}</div>`;
 }
 
-// Inject server-rendered content into the empty #root so crawlers see real
-// content. createRoot() replaces these children on client mount.
+// Inject server-rendered content at the start of #root so crawlers see real
+// content. #root already holds the static header shell from index.html, which
+// stays visible while this copy is hidden. createRoot() replaces both on
+// client mount. A replacer function, so "$&" or "$'" in component text is not
+// read as a replacement pattern. The loose match and the warning are there so
+// a reformatted index.html can't silently drop the SEO copy.
+const ROOT_OPEN_TAG = /<div\s+id=(["'])root\1[^>]*>/;
+
 function injectRootContent(html: string, innerHtml: string): string {
-  return html.replace(
-    /<div id="root">\s*<\/div>/,
-    `<div id="root">${innerHtml}</div>`
-  );
+  if (!ROOT_OPEN_TAG.test(html)) {
+    console.warn("og-meta: no #root in index.html, SEO body not injected");
+    return html;
+  }
+  return html.replace(ROOT_OPEN_TAG, (root) => root + innerHtml);
 }
 
 // Serialize a value for a <script type="application/json"> block. JSON.parse

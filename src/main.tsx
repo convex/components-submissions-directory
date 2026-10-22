@@ -396,8 +396,16 @@ const app = (
         <div className="antialiased min-h-screen flex flex-col">
           <div className="flex-1">
             {/* Fallback reserves full viewport height so lazy route chunks
-                loading in does not shift the footer or cause CLS */}
-            <Suspense fallback={<div className="min-h-screen" />}>
+                loading in does not shift the footer or cause CLS. It keeps
+                the header, so the static header in index.html doesn't
+                vanish while a route's chunk loads. */}
+            <Suspense
+              fallback={
+                <div className="min-h-screen bg-bg-primary">
+                  <Header />
+                </div>
+              }
+            >
               <Router />
             </Suspense>
           </div>

@@ -63,6 +63,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `netlify/_redirects` answers missing `/components/assets/*` files with a 404. Before, the SPA fallback served `index.html` there with a 200 and the year-long immutable cache header, so a stale chunk failed slowly and the HTML could be cached under the asset URL.
   - Files: `src/main.tsx`, `src/lib/chunkLoader.ts` (new), `src/lib/componentDetailChunk.ts` (new), `src/components/ComponentDetailSkeleton.tsx` (new), `src/pages/ComponentDetail.tsx`, `src/pages/Directory.tsx`, `src/pages/CategoryPage.tsx`, `vite.config.ts`
 
+- The page paints a static header and card skeleton before the JS runs (2026-10-22 05:22 UTC)
+  - `#root` in `index.html` now holds a static copy of React's first frame: the site header as `Header.tsx` renders it while auth loads, and on `/components` and `/components/categories/<slug>` the title, sidebar, search and sort row and the loading card grid from `Directory.tsx` and `CategoryPage.tsx`. It paints as soon as the HTML and CSS arrive, instead of a blank page until the bundle runs (~0.8s on a phone). `createRoot()` replaces it on mount.
+  - A small inline script before it sets `data-shell` on `<html>` from the URL, and rules at the end of `src/index.css` hide what doesn't belong: component, submit, profile, admin and 404 pages get the header only, and `/components/callback` and `/components/submissions` (which render without a header) get nothing, as before. It also picks the list skeleton for visitors who chose list view, and hides the skeleton cards when the catalog is saved in localStorage, since those visitors get real cards as soon as the JS runs.
+  - Header links are real `<a href>`s that work without JS, and links to the directory root use `/components` (no trailing slash). Skeleton parts are `aria-hidden` with a visually hidden "Loading components" status, the JS-only buttons and search inputs are `inert` so a tap can't focus them before React mounts, and the pulse only runs without `prefers-reduced-motion`.
+  - The saved-catalog check parses `directoryPage:v1` and applies the same 7 day limit as `readStoredPage()`, so a broken or expired entry still gets skeleton cards.
+  - The Suspense fallback for lazy routes now renders the header, so the static header doesn't disappear while a route's chunk loads.
+  - `og-meta` inserts its hidden crawler copy at the start of `#root` instead of only replacing an empty `#root`, so component pages keep their crawlable content. It matches the `#root` tag loosely and logs a warning if it can't find it.
+  - Size: built `index.html` 6.1 KB to 23.7 KB raw, 1.5 KB to 5.4 KB brotli. Main CSS +4.1 KB raw, +0.4 KB brotli.
+  - Files: `index.html`, `src/index.css`, `src/main.tsx`, `netlify/edge-functions/og-meta.ts`
+
 - `convex-helpers` bumped to ^0.1.128 and `package-lock.json` is now committed (2026-10-13, pulled 2026-10-16 06:30 UTC)
   - From upstream #46 and #47. `package-lock.json` is no longer in `.gitignore`, so `npm install` gives everyone the same dependency tree.
   - Files: `package.json`, `package-lock.json`, `.gitignore`
