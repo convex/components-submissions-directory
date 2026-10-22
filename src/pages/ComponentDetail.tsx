@@ -17,6 +17,7 @@ import { InstallCommand } from "../components/InstallCommand";
 import { VerifiedBadge } from "../components/VerifiedBadge";
 import { CommunityBadge } from "../components/CommunityBadge";
 import Header from "../components/Header";
+import ComponentDetailSkeleton from "../components/ComponentDetailSkeleton";
 import CodeBlock from "../components/CodeBlockLazy";
 import { Markdown } from "../components/Markdown";
 import { preloadMarkdown } from "../lib/markdownChunk";
@@ -1213,18 +1214,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
 
   // Loading state
   if (component === undefined) {
-    return (
-      <div className="min-h-screen bg-bg-primary">
-        <Header />
-        <div className="max-w-5xl mx-auto px-4 py-12">
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-bg-secondary rounded w-48" />
-            <div className="h-4 bg-bg-secondary rounded w-96" />
-            <div className="h-64 bg-bg-secondary rounded" />
-          </div>
-        </div>
-      </div>
-    );
+    return <ComponentDetailSkeleton />;
   }
 
   // Not found

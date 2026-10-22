@@ -1,19 +1,27 @@
 import { createRoot } from "react-dom/client";
-import { Component, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Component, Suspense, lazy, use, useEffect, useMemo, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { ConvexReactClient, useQuery } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { ConvexProviderWithAuthKit } from "@convex-dev/workos";
 import "./index.css";
 import { api } from "../convex/_generated/api";
-// Indexed routes (sitemap: /components, /submit, and slugs) stay eagerly
-// imported so crawlers never wait on a lazy chunk. ComponentDetail also
-// injects JSON-LD client side and must render immediately.
+// The directory and category pages are what most visits land on, so they stay
+// in the entry bundle. The og-meta edge function puts each page's title,
+// description and canonical link in the HTML, and crawlers that run JS wait
+// for lazy chunks like any other request (ComponentDetail's JSON-LD already
+// waited on its data), so indexed pages can load on demand too.
 import Directory from "./pages/Directory";
 import CategoryPage from "./pages/CategoryPage";
-import SubmitForm from "./pages/SubmitForm";
-import ComponentDetail from "./pages/ComponentDetail";
 import NotFound from "./pages/NotFound";
+import ComponentDetailSkeleton from "./components/ComponentDetailSkeleton";
+import Header from "./components/Header";
+import { chunkLoader } from "./lib/chunkLoader";
+// The public submit form brings sonner, the markdown preview and its own
+// icons, none of which the directory needs. Hovering or touching a Submit
+// link starts it early, and it's read with use() like the component page
+// (see chunkLoader.ts) so a preloaded form opens without a blank frame.
+const submitFormChunk = chunkLoader(() => import("./pages/SubmitForm"));
 // Admin, auth-gated, and noindex routes load on demand. This keeps the ~17k
 // lines of admin/profile code out of the initial bundle every visitor downloads.
 const Submit = lazy(() => import("./pages/Submit"));
@@ -35,6 +43,10 @@ import {
 } from "./lib/router";
 import { prefetchComponent } from "./lib/convexHttp";
 import { preloadMarkdown } from "./lib/markdownChunk";
+import {
+  componentDetailChunk,
+  preloadComponentDetail,
+} from "./lib/componentDetailChunk";
 
 class PageErrorBoundary extends Component<
   { children: ReactNode; fallback?: ReactNode },
@@ -112,8 +124,29 @@ function slugFromPathname(pathname: string): string | null {
   return parseSlugFromPath(segments) || null;
 }
 
+// Component pages load their chunk on demand (see componentDetailChunk.ts).
+// use() renders straight away when the chunk is already here, and the
+// skeleton the page shows while its data loads covers the wait otherwise.
+// A chunk that fails to load (offline, or a tab left open across a deploy)
+// throws to the PageErrorBoundary around it.
+function ComponentDetailRoute({
+  slug,
+  entryKey,
+}: {
+  slug: string;
+  entryKey: string;
+}) {
+  const { default: ComponentDetail } = use(componentDetailChunk.read(entryKey));
+  return <ComponentDetail slug={slug} />;
+}
+
+function SubmitFormRoute({ entryKey }: { entryKey: string }) {
+  const { default: SubmitForm } = use(submitFormChunk.read(entryKey));
+  return <SubmitForm />;
+}
+
 function Router() {
-  const { pathname: path } = useLocation();
+  const { pathname: path, entryKey } = useLocation();
   useScrollOnNavigate();
 
   // Category URLs need exactly one slug; anything else (bare or with extra
@@ -173,7 +206,14 @@ function Router() {
 
   // /submit = Auth-gated submission form
   if (segments[0] === "submit") {
-    return <SubmitForm />;
+    // The header stays put while the form's chunk loads
+    return (
+      <PageErrorBoundary>
+        <Suspense fallback={<Header />}>
+          <SubmitFormRoute entryKey={entryKey} />
+        </Suspense>
+      </PageErrorBoundary>
+    );
   }
 
   // Profile page for managing user submissions
@@ -215,9 +255,12 @@ function Router() {
     const slug = parseSlugFromPath(segments);
     if (slug) {
       // Keyed so an error on one component resets when moving to another
+      // (and that navigation retries a chunk that failed to load)
       return (
         <PageErrorBoundary key={slug}>
-          <ComponentDetail slug={slug} />
+          <Suspense fallback={<ComponentDetailSkeleton />}>
+            <ComponentDetailRoute slug={slug} entryKey={entryKey} />
+          </Suspense>
         </PageErrorBoundary>
       );
     }
@@ -322,17 +365,31 @@ function AuthCallback() {
 history.scrollRestoration = "manual";
 window.scrollTo(0, 0);
 
-// In-app navigation for links to directory pages. Hovering or touching a
-// component link starts loading its data and the README renderer.
-installNavigation((pathname) => {
+// Start loading a page before it renders. A component page needs its data,
+// the page chunk and the README renderer, fetched in parallel rather than one
+// after another. The submit form only needs its chunk.
+function prefetchPage(pathname: string) {
+  if (pathname.replace(/\/+$/, "") === "/components/submit") {
+    // A failure shows up when the page renders and reads the chunk
+    submitFormChunk.preload().catch(() => {});
+    return;
+  }
   const slug = slugFromPathname(pathname);
   if (slug) {
     prefetchComponent(slug);
+    preloadComponentDetail();
     preloadMarkdown();
   }
-});
+}
 
-createRoot(document.getElementById("root")!).render(
+// A page opened directly starts all of it now, while React renders
+prefetchPage(window.location.pathname);
+
+// In-app navigation for links to directory pages. Hovering or touching a
+// component or Submit link starts loading the same things.
+installNavigation(prefetchPage);
+
+const app = (
   <>
     <ConnectAuthProvider>
       <ConvexProviderWithAuthKit client={convex} useAuth={useConnectAuth}>
@@ -353,3 +410,17 @@ createRoot(document.getElementById("root")!).render(
     <DeferredWebAnalytics />
   </>
 );
+const root = createRoot(document.getElementById("root")!);
+const renderApp = () => root.render(app);
+
+if (slugFromPathname(window.location.pathname)) {
+  // A component page opened directly waits for its chunk (already requested
+  // above, and preloaded by index.html) before the first render. Rendering
+  // first would commit the skeleton fallback, and React then holds the page
+  // back until ~300ms after that commit, longer than the data takes for
+  // visitors near the deployment. Whatever is in #root stays up meanwhile,
+  // and a failed load still renders, so the error boundary shows it.
+  componentDetailChunk.preload().then(renderApp, renderApp);
+} else {
+  renderApp();
+}

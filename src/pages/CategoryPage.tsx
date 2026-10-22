@@ -12,6 +12,7 @@ import {
   whenIdle,
   type DirectoryPageData,
 } from "../lib/convexHttp";
+import { preloadComponentDetailWhenIdle } from "../lib/componentDetailChunk";
 import {
   navigate,
   readEntryState,
@@ -149,6 +150,9 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   );
 
   const applyData = useCallback((data: DirectoryPageData) => {
+    // Cards are about to render: fetch the component page chunk once the
+    // browser is idle, so opening a card doesn't wait for it
+    preloadComponentDetailWhenIdle();
     setCategoryData(data.categoryData);
     setCategories(data.categories);
     setComponents(data.components);

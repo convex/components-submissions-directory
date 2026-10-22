@@ -82,6 +82,87 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
+// The component page is a lazy chunk, so a visit that lands on one (search
+// results, README badges) would only learn its URL once the entry has
+// downloaded and run, then wait another round trip for it. This adds a small
+// inline script to the built index.html that, on component page paths only,
+// adds <link rel="modulepreload"> tags for that chunk and the small chunks it
+// imports statically, so they download alongside the entry. Its dynamic
+// imports (the README renderer and shiki) are left to load as before.
+//
+// The path test mirrors the router: /components/<slug> or
+// /components/<scope>/<name>, minus the routes in NON_SLUG_ROUTES
+// (src/main.tsx), RESERVED_ROUTES (src/lib/slugs.ts) and the non-app
+// prefixes and file names in isAppPath (src/lib/router.ts). Getting it wrong
+// only costs a wasted or a missed preload.
+//
+// It runs as a "post" HTML hook, where the bundle is known, and is listed
+// before contentSecurityPolicy so its script gets hashed too.
+function componentPagePreload(): Plugin {
+  let base = "/";
+  return {
+    name: "component-page-preload",
+    apply: "build",
+    configResolved(config) {
+      base = config.base;
+    },
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        const bundle = ctx.bundle;
+        if (!bundle || !ctx.chunk) return html;
+        const page = Object.values(bundle).find(
+          (output) =>
+            output.type === "chunk" &&
+            output.facadeModuleId?.endsWith("/src/pages/ComponentDetail.tsx"),
+        );
+        if (!page || page.type !== "chunk") {
+          throw new Error("component-page-preload: ComponentDetail chunk not found");
+        }
+        // The page chunk and everything it imports statically, minus what the
+        // entry already loads
+        const alreadyLoaded = new Set([ctx.chunk.fileName, ...ctx.chunk.imports]);
+        const files: string[] = [];
+        const add = (fileName: string) => {
+          if (alreadyLoaded.has(fileName) || files.includes(fileName)) return;
+          files.push(fileName);
+          const output = bundle[fileName];
+          if (output?.type === "chunk") output.imports.forEach(add);
+        };
+        add(page.fileName);
+        const urls = JSON.stringify(files.map((file) => base + file));
+        const script = `<script>
+      (function () {
+        var path = location.pathname;
+        var match = path.match(/^\\/components\\/([^/]+)(?:\\/[^/]+)?\\/?$/);
+        if (
+          !match ||
+          /^(callback|submissions|submit|profile|documentation|dashboard|badge|categories|assets|fonts|images|_img|_src|api)$/.test(match[1]) ||
+          /\\.[a-z0-9]+$/i.test(path)
+        ) {
+          return;
+        }
+        ${urls}.forEach(function (href) {
+          var link = document.createElement("link");
+          link.rel = "modulepreload";
+          link.href = href;
+          document.head.appendChild(link);
+        });
+      })();
+    </script>
+    `;
+        // Before the entry <script> and the stylesheet: an inline script
+        // after a stylesheet waits for the CSS to download before it runs
+        const entryTag = html.indexOf(`<script type="module" crossorigin src="${base}${ctx.chunk.fileName}"`);
+        if (entryTag === -1) {
+          throw new Error("component-page-preload: entry script tag not found");
+        }
+        return html.slice(0, entryTag) + script + html.slice(entryTag);
+      },
+    },
+  };
+}
+
 export default defineConfig({
   // All URLs under /components/ (HTML, assets, routing)
   base: "/components/",
@@ -98,7 +179,12 @@ export default defineConfig({
       },
     },
   },
-  plugins: [react(), netlifyRootFiles(), contentSecurityPolicy()],
+  plugins: [
+    react(),
+    netlifyRootFiles(),
+    componentPagePreload(),
+    contentSecurityPolicy(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
