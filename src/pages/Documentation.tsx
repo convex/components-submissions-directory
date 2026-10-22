@@ -225,7 +225,7 @@ export default function Documentation({ section }: DocumentationProps) {
             Documentation is only available to administrators with @convex.dev email addresses.
           </p>
           <a
-            href={`${basePath}/`}
+            href={basePath}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-button text-white hover:bg-button-hover transition-colors"
           >
             <House size={16} />

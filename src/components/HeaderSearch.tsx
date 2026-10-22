@@ -73,7 +73,7 @@ export function HeaderSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const directoryHref = `${BASE_PATH}/?q=${encodeURIComponent(term.trim())}`;
+  const directoryHref = `${BASE_PATH}?q=${encodeURIComponent(term.trim())}`;
 
   const goToDirectory = () => {
     if (!term.trim()) return;

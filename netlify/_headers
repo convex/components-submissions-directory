@@ -17,6 +17,89 @@
 /components/fonts/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=86400
 
+# Logos, social icons and favicons at the root of public/, linked from
+# index.html, the header and footer. They are not content-hashed, so cache
+# for a day rather than forever. stale-while-revalidate lets a visitor back
+# within the week use the cached copy while it refreshes in the background,
+# so a changed logo shows up within a day, or one visit later inside the
+# week. Before this every visit revalidated them (max-age=0). Listed one by
+# one: /components/* would also match the HTML routes, and a wildcard like
+# /components/*.png could also match hashed images under assets/, where
+# Netlify would merge both Cache-Control rules into one broken header.
+# A new icon needs a rule here; og-meta's excludedPath globs in netlify.toml
+# already let it through
+/components/favicon.ico
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/favicon-16x16.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/favicon-32x32.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/favicon-96x96.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/favicon-128x128.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/favicon-196x196.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-57x57.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-60x60.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-72x72.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-76x76.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-114x114.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-120x120.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-144x144.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/apple-touch-icon-152x152.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/convex-wordmark-black.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/logo.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/trustCheck.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/npm.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/twitter.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/discord.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/youtube.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/luma.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/linkedin.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/components/github.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 # Noindex for admin, auth and internal routes. Defence in depth only: these
 # are HTML routes served through og-meta, which sets X-Robots-Tag itself
 /components/submissions

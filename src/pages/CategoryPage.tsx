@@ -27,7 +27,8 @@ import { buildCategoryClientUrls } from "../../shared/categoryUrls";
 
 type SortBy = "newest" | "downloads" | "updated" | "rating" | "verified";
 
-const DIRECTORY_ROOT_HREF = "/components/";
+// No trailing slash: www.convex.dev redirects /components/ to /components
+const DIRECTORY_ROOT_HREF = "/components";
 
 interface CategoryPageProps {
   categorySlug: string;

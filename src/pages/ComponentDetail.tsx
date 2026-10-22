@@ -1008,7 +1008,8 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
     loadIssues(issueFilter, nextPage, true);
   };
 
-  const basePath = window.location.pathname.startsWith("/components") ? "/components/" : "/";
+  // No trailing slash on the root: www.convex.dev redirects /components/
+  const basePath = window.location.pathname.startsWith("/components") ? "/components" : "";
 
   const badgeMarkdown = component?.slug
     ? `[![Convex Component](https://www.convex.dev/components/badge/${component.slug})](https://www.convex.dev/components/${component.slug})`
@@ -1053,7 +1054,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
     ? (dynamicCategories.find((category) => category.id === component.category) ?? null)
     : null;
   const categoryHref =
-    component?.category && resolvedCategory ? `${basePath}categories/${component.category}` : null;
+    component?.category && resolvedCategory ? `${basePath}/categories/${component.category}` : null;
 
   // Generate full markdown doc
   const markdownDoc = component
@@ -1236,7 +1237,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
             <h1 className="text-4xl font-light text-text-primary mb-2">404</h1>
             <p className="text-text-secondary mb-4">Component not found</p>
             <a
-              href={basePath}
+              href={basePath || "/"}
               className="text-sm font-medium underline text-text-primary hover:text-text-secondary">
               Back to Components
             </a>
@@ -1441,7 +1442,7 @@ export default function ComponentDetail({ slug }: ComponentDetailProps) {
 
             {/* Back to Components (bottom of sidebar) */}
             <a
-              href={basePath}
+              href={basePath || "/"}
               className="hidden lg:inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors pt-2">
               <ArrowLeftIcon className="w-3 h-3" />
               Back to Components

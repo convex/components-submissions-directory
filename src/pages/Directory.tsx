@@ -22,7 +22,8 @@ import { githubOwnerAliases } from "../../shared/repoUrl";
 
 type SortBy = "newest" | "downloads" | "updated" | "rating" | "verified";
 
-const DIRECTORY_ROOT_HREF = "/components/";
+// No trailing slash: www.convex.dev redirects /components/ to /components
+const DIRECTORY_ROOT_HREF = "/components";
 
 const getGridColumnCount = (): number => {
   if (typeof window === "undefined") return 4;

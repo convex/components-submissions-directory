@@ -23,13 +23,17 @@
 # OG meta tags for social crawlers (must be before SPA fallback).
 # excludedPath keeps static files out of the edge function so the
 # netlify/_headers cache rules apply; og-meta was a pure passthrough for
-# these paths anyway. cache = "manual" lets Netlify's edge cache og-meta
+# these paths anyway. The extension globs cover the logos, social icons and
+# favicons in public/. No HTML route ends in one of these extensions: app
+# paths with a file extension aren't app routes (isAppPath in
+# src/lib/router.ts), and og-meta's own proxies are .txt, .md and .xml.
+# cache = "manual" lets Netlify's edge cache og-meta
 # responses that send cache headers (component pages, see og-meta.ts), so
 # repeat requests skip the Convex lookup. Cached responses are purged on
 # every deploy.
 [[edge_functions]]
   path = "/components/*"
-  excludedPath = ["/components/assets/*", "/components/fonts/*", "/components/_img/*", "/components/_src/*"]
+  excludedPath = ["/components/assets/*", "/components/fonts/*", "/components/_img/*", "/components/_src/*", "/components/*.svg", "/components/*.png", "/components/*.ico", "/components/*.webp"]
   function = "og-meta"
   cache = "manual"
 
