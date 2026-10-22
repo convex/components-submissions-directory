@@ -18,6 +18,7 @@ import {
   type Value,
 } from "convex/values";
 import { api } from "../../convex/_generated/api";
+import { catalogResponseAgeMs } from "./catalogAge";
 
 declare global {
   interface Window {
@@ -203,27 +204,51 @@ function isDirectoryPageData(value: unknown): value is DirectoryPageData {
   );
 }
 
+// A catalog response, how old the data in it is (non-zero only for a copy
+// from the edge cache) and its raw JSON text (missing for the fallback
+// queries), which is compared to spot a refresh that changed nothing
+type LoadedDirectoryPage = {
+  data: DirectoryPageData;
+  ageMs: number;
+  text?: string;
+};
+
 // Returns null for anything that isn't a usable page payload, so a bad
 // response falls back instead of rendering an empty directory.
 async function readDirectoryPage(
   response: Promise<Response | null>,
-): Promise<DirectoryPageData | null> {
+): Promise<LoadedDirectoryPage | null> {
   const res = await response;
   if (!res?.ok) return null;
-  const data = jsonToConvex(await res.json());
-  return isDirectoryPageData(data) ? data : null;
+  const text = await res.text();
+  const data = jsonToConvex(JSON.parse(text) as JSONValue);
+  return isDirectoryPageData(data)
+    ? { data, ageMs: catalogResponseAgeMs(res.headers), text }
+    : null;
 }
 
 // How long a loaded catalog counts as fresh before focus, tab switches or
-// revisits refetch it
+// revisits refetch it. Also how old an edge cache copy can be before the
+// pages show it and then refresh it straight from Convex.
 export const CATALOG_REFRESH_AFTER_MS = 60_000;
+
+// loadedAt is when the data left Convex, as far as this device's clock can
+// tell: an edge copy that was 5 minutes old when it arrived gets a loadedAt
+// 5 minutes ago, so the usual staleness checks refresh it.
+// text is the response it came from, kept in memory only.
+export type DirectoryPageEntry = {
+  data: DirectoryPageData;
+  loadedAt: number;
+  text?: string;
+};
+
+// unchanged means the response was byte for byte the one already cached (and
+// on screen), so the pages can skip re-rendering the grid
+export type FetchedDirectoryPage = DirectoryPageEntry & { unchanged: boolean };
 
 // Last successful catalog response per URL, so going Back to the directory
 // or a category renders straight away instead of showing a skeleton.
-const directoryPageCache = new Map<
-  string,
-  { data: DirectoryPageData; loadedAt: number }
->();
+const directoryPageCache = new Map<string, DirectoryPageEntry>();
 
 // The default directory view is also saved to localStorage, so a returning
 // visitor sees cards as soon as the JS runs instead of waiting on the network.
@@ -235,9 +260,7 @@ function isStoredPage(url: string) {
   return url === directoryPageUrl("downloads");
 }
 
-function readStoredPage():
-  | { data: DirectoryPageData; loadedAt: number }
-  | undefined {
+function readStoredPage(): DirectoryPageEntry | undefined {
   try {
     const raw = localStorage.getItem(STORED_PAGE_KEY);
     if (!raw) return undefined;
@@ -254,21 +277,45 @@ function readStoredPage():
   }
 }
 
-function saveCachedPage(url: string, data: DirectoryPageData) {
-  const entry = { data, loadedAt: Date.now() };
-  directoryPageCache.set(url, entry);
-  if (!isStoredPage(url)) return;
-  try {
-    localStorage.setItem(
-      STORED_PAGE_KEY,
-      JSON.stringify({
-        data: convexToJson(data as unknown as Value),
-        loadedAt: entry.loadedAt,
-      }),
-    );
-  } catch {
-    // Storage full or unavailable (private mode): the memory cache still works
+function saveCachedPage(
+  url: string,
+  { data, ageMs, text }: LoadedDirectoryPage,
+): FetchedDirectoryPage {
+  // Most edge copies are over a minute old, so most visits refresh in the
+  // background, and usually nothing has changed. Keeping the cached data
+  // object then lets the pages leave the grid alone.
+  const previous = directoryPageCache.get(url);
+  const loadedAt = Date.now() - ageMs;
+  // Never let an older copy replace a newer one: going back to a page whose
+  // memory copy came straight from Convex can get an edge copy that was
+  // fetched before it. The page then refreshes from Convex if needed. (The
+  // localStorage copy has loadedAt 0, so any response replaces it.)
+  if (previous && loadedAt < previous.loadedAt) {
+    return { ...previous, unchanged: true };
   }
+  const unchanged =
+    previous !== undefined && text !== undefined && previous.text === text;
+  const entry = {
+    data: unchanged ? previous.data : data,
+    loadedAt,
+    text,
+  };
+  directoryPageCache.set(url, entry);
+  if (isStoredPage(url)) {
+    try {
+      // The response text is already convexToJson output, so reuse it
+      // rather than serializing the catalog again
+      const storedData =
+        text ?? JSON.stringify(convexToJson(data as unknown as Value));
+      localStorage.setItem(
+        STORED_PAGE_KEY,
+        `{"data":${storedData},"loadedAt":${entry.loadedAt}}`,
+      );
+    } catch {
+      // Storage full or unavailable (private mode): the memory cache still works
+    }
+  }
+  return { ...entry, unchanged };
 }
 
 export function getCachedDirectoryPage(
@@ -284,17 +331,34 @@ export function getCachedDirectoryPage(
   return entry;
 }
 
-// Must build the exact same URL as the inline script in index.html.
-function directoryPageUrl(sortBy: DirectorySort, category?: string) {
-  const siteUrl =
+function convexSiteUrl() {
+  return (
     (import.meta.env.VITE_CONVEX_SITE_URL as string | undefined) ||
     (import.meta.env.VITE_CONVEX_URL as string).replace(
       ".convex.cloud",
       ".convex.site",
-    );
-  let url = `${siteUrl}/api/directory-page?sortBy=${sortBy}`;
+    )
+  );
+}
+
+function directoryPageUrlFrom(
+  origin: string,
+  sortBy: DirectorySort,
+  category?: string,
+) {
+  let url = `${origin}/api/directory-page?sortBy=${sortBy}`;
   if (category) url += `&category=${encodeURIComponent(category)}`;
   return url;
+}
+
+// Must build the exact same URL as the inline script in index.html.
+// Production builds use the same-origin path served by the directory-page
+// edge function (netlify/edge-functions/directory-page.ts), which Netlify's
+// CDN caches for up to ten minutes, so a first visit doesn't wait on a round
+// trip to the US. vite dev has no edge functions, so it asks Convex directly.
+function directoryPageUrl(sortBy: DirectorySort, category?: string) {
+  const origin = import.meta.env.PROD ? "/components" : convexSiteUrl();
+  return directoryPageUrlFrom(origin, sortBy, category);
 }
 
 // Catalog data for the directory and category pages in one plain GET
@@ -306,11 +370,19 @@ function directoryPageUrl(sortBy: DirectorySort, category?: string) {
 // still downloading, so the first call usually resolves straight away. Falls
 // back to the individual queries if the endpoint fails, stalls or returns
 // something unexpected.
+//
+// Resolves with the cache entry, whose loadedAt says how old the data is. An
+// edge copy can be up to ten minutes old, so the pages render it and, when
+// it's over CATALOG_REFRESH_AFTER_MS, call this again with direct: true.
+// That asks Convex itself, since the edge could hand back another node's old
+// copy. Refreshes of data already on screen use direct too. unchanged says
+// the data is the same as what's cached, so there's nothing to re-render.
 export function fetchDirectoryPage(
   sortBy: DirectorySort,
   category?: string,
   signal?: AbortSignal,
-): Promise<DirectoryPageData> {
+  { direct = false }: { direct?: boolean } = {},
+): Promise<FetchedDirectoryPage> {
   // Like the websocket client this replaced, keep trying through a dropped
   // connection instead of failing and leaving the page on its skeleton. A
   // failed attempt is retried with backoff (and straight away when the
@@ -338,12 +410,11 @@ export function fetchDirectoryPage(
       const attempt = attempts++;
       clearTimeout(retryTimer);
       retryTimer = setTimeout(startAttempt, ATTEMPT_PATIENCE_MS);
-      loadDirectoryPage(sortBy, category, signal).then(
-        (data) => {
+      loadDirectoryPage(sortBy, category, signal, direct).then(
+        (page) => {
           if (settled) return;
           finish();
-          saveCachedPage(directoryPageUrl(sortBy, category), data);
-          resolve(data);
+          resolve(saveCachedPage(directoryPageUrl(sortBy, category), page));
         },
         (error) => {
           // Only the newest attempt decides when to try again
@@ -376,8 +447,11 @@ function loadDirectoryPage(
   sortBy: DirectorySort,
   category: string | undefined,
   signal: AbortSignal | undefined,
-): Promise<DirectoryPageData> {
-  const url = directoryPageUrl(sortBy, category);
+  direct: boolean,
+): Promise<LoadedDirectoryPage> {
+  const url = direct
+    ? directoryPageUrlFrom(convexSiteUrl(), sortBy, category)
+    : directoryPageUrl(sortBy, category);
   const prefetch = window.__directoryPrefetch;
   let request: Promise<Response | null>;
   if (prefetch?.url === url) {
@@ -399,9 +473,9 @@ function loadDirectoryPage(
       stop();
       reject(new DOMException("Aborted", "AbortError"));
     };
-    const succeed = (data: DirectoryPageData) => {
+    const succeed = (page: LoadedDirectoryPage) => {
       stop();
-      resolve(data);
+      resolve(page);
     };
     const fail = () => {
       failures += 1;
@@ -415,15 +489,34 @@ function loadDirectoryPage(
     const startFallback = () => {
       if (fallbackStarted || signal?.aborted) return;
       fallbackStarted = true;
-      loadDirectoryQueries(sortBy, category).then(succeed, fail);
+      loadDirectoryQueries(sortBy, category).then(
+        (data) => succeed({ data, ageMs: 0 }),
+        fail,
+      );
     };
     const fallbackTimer = setTimeout(startFallback, DIRECTORY_PAGE_TIMEOUT_MS);
     signal?.addEventListener("abort", onAbort);
-    readDirectoryPage(request).then(
-      (data) => (data ? succeed(data) : fail()),
+    readDirectoryPageOrDirect(request, url, sortBy, category, signal).then(
+      (page) => (page ? succeed(page) : fail()),
       fail,
     );
   });
+}
+
+// When the same-origin edge copy fails (vite preview, which has no edge
+// functions, or an edge outage), ask the Convex endpoint it copies before
+// counting the attempt as failed.
+async function readDirectoryPageOrDirect(
+  request: Promise<Response | null>,
+  url: string,
+  sortBy: DirectorySort,
+  category: string | undefined,
+  signal: AbortSignal | undefined,
+): Promise<LoadedDirectoryPage | null> {
+  const page = await readDirectoryPage(request).catch(() => null);
+  const directUrl = directoryPageUrlFrom(convexSiteUrl(), sortBy, category);
+  if (page || directUrl === url || signal?.aborted) return page;
+  return readDirectoryPage(fetch(directUrl, { signal }));
 }
 
 async function loadDirectoryQueries(
@@ -455,4 +548,17 @@ async function loadDirectoryQueries(
     listViewSettings,
     categoryData,
   };
+}
+
+// Runs fn once the browser is idle (or after two seconds at most), so the
+// background catalog refresh doesn't compete with thumbnails and the largest
+// paint on slow phones. Safari has no requestIdleCallback, so it waits a
+// second instead. Returns a cancel function.
+export function whenIdle(fn: () => void): () => void {
+  if (typeof window.requestIdleCallback === "function") {
+    const handle = window.requestIdleCallback(fn, { timeout: 2000 });
+    return () => window.cancelIdleCallback(handle);
+  }
+  const timer = setTimeout(fn, 1000);
+  return () => clearTimeout(timer);
 }

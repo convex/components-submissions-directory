@@ -19,13 +19,22 @@
 
     <link rel="stylesheet" href="/src/index.css" />
 
-    <!-- Warm the Convex connection used by HTTP queries and the websocket -->
+    <!-- Warm the Convex connection used by the websocket (every page opens it
+         at startup) and by component pages' /api/query requests. In
+         production the catalog's first request goes to the same origin (see
+         below), so convex.site only gets a dns-prefetch from the script: the
+         directory pages ask it for a fresh catalog in the background when
+         the edge copy is over a minute old, and fall back to it if the edge
+         fails. A full preconnect would compete with the first paint. -->
     <link rel="preconnect" href="%VITE_CONVEX_URL%" crossorigin />
 
     <!-- Start the directory's catalog request while the JS bundle downloads.
          fetchDirectoryPage() in src/lib/convexHttp.ts picks it up by URL, so
          keep the URL here in sync with directoryPageUrl() there. A mismatch
-         just means a normal fetch later. -->
+         just means a normal fetch later. Production builds use the
+         same-origin path served (and CDN cached) by the directory-page edge
+         function; vite dev has no edge functions, so it asks convex.site. If
+         the same-origin request fails, convexHttp.ts retries convex.site. -->
     <script>
       (function () {
         var cloudUrl = "%VITE_CONVEX_URL%";
@@ -36,6 +45,13 @@
         if (!match || cloudUrl.charAt(0) === "%" || !window.fetch) return;
         if (!siteUrl || siteUrl.charAt(0) === "%") {
           siteUrl = cloudUrl.replace(".convex.cloud", ".convex.site");
+        }
+        if ("%PROD%" === "true") {
+          var hint = document.createElement("link");
+          hint.rel = "dns-prefetch";
+          hint.href = siteUrl;
+          document.head.appendChild(hint);
+          siteUrl = "/components";
         }
         var url = siteUrl + "/api/directory-page?sortBy=downloads";
         if (match[1]) url += "&category=" + encodeURIComponent(match[1]);

@@ -20,6 +20,17 @@
   path = "/components/badge/*"
   function = "component-badge"
 
+# Same-origin, CDN cached copy of the Convex /api/directory-page catalog (see
+# directory-page.ts). Declared before og-meta, and og-meta's excludedPath
+# skips all of /components/api/* (nothing else lives there), so og-meta never
+# runs for it, even with a trailing slash that this path doesn't match.
+# cache = "manual" lets Netlify's edge cache the responses that send
+# Netlify-CDN-Cache-Control.
+[[edge_functions]]
+  path = "/components/api/directory-page"
+  function = "directory-page"
+  cache = "manual"
+
 # OG meta tags for social crawlers (must be before SPA fallback).
 # excludedPath keeps static files out of the edge function so the
 # netlify/_headers cache rules apply; og-meta was a pure passthrough for
@@ -33,7 +44,7 @@
 # every deploy.
 [[edge_functions]]
   path = "/components/*"
-  excludedPath = ["/components/assets/*", "/components/fonts/*", "/components/_img/*", "/components/_src/*", "/components/*.svg", "/components/*.png", "/components/*.ico", "/components/*.webp"]
+  excludedPath = ["/components/assets/*", "/components/fonts/*", "/components/_img/*", "/components/_src/*", "/components/*.svg", "/components/*.png", "/components/*.ico", "/components/*.webp", "/components/api/*"]
   function = "og-meta"
   cache = "manual"
 
