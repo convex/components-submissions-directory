@@ -14,7 +14,7 @@ curl -fsSL "https://raw.githubusercontent.com/robelest/convex-auth/release/READM
 echo "   saved: /tmp/robel-auth-release-readme.md"
 
 echo "3) self-hosting integration guide"
-curl -fsSL "https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md" >/tmp/self-hosting-integration.md
+curl -fsSL "https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md" >/tmp/self-hosting-integration.md
 echo "   saved: /tmp/self-hosting-integration.md"
 
 echo "4) package availability check"

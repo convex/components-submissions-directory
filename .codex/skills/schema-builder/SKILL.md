@@ -129,4 +129,4 @@ v.any()
 - [ ] Enums use `v.union(v.literal(...))` pattern
 - [ ] Timestamps use `v.number()` (milliseconds since epoch)
 
-Source: https://github.com/get-convex/convex-agent-plugins
+Source: https://github.com/convex/convex-agent-plugins

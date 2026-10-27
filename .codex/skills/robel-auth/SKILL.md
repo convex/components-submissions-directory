@@ -26,8 +26,8 @@ Manual checklist if script is unavailable:
 3. Read latest `release` README: `https://raw.githubusercontent.com/robelest/convex-auth/release/README.md`
 4. Check branch level differences: `https://github.com/robelest/convex-auth/compare/release...main`
 5. Read current self hosting docs if portal or static hosting is involved:
-   - `https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md`
-   - `https://github.com/get-convex/self-hosting`
+   - `https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md`
+   - `https://github.com/convex/static-hosting`
 
 If `main` and `release` conflict, prefer the branch requested by the user. If unspecified, use `release` for stability and explain that choice.
 
@@ -401,15 +401,15 @@ When upgrading existing apps:
 
 ## Self hosting decision point
 
-Use `get-convex/self-hosting` only when:
+Use `convex/static-hosting` only when:
 
 - user asks for self hosted static assets, or
 - auth portal hosting requires it in the selected upstream version.
 
 When needed, follow the latest upstream integration docs:
 
-- `https://github.com/get-convex/self-hosting`
-- `https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md`
+- `https://github.com/convex/static-hosting`
+- `https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md`
 
 ## Output requirements for any task using this skill
 
@@ -436,6 +436,6 @@ Never claim completion without these five items.
 - `https://github.com/robelest/convex-auth/tree/release`
 - `https://raw.githubusercontent.com/robelest/convex-auth/main/README.md`
 - `https://raw.githubusercontent.com/robelest/convex-auth/release/README.md`
-- `https://github.com/get-convex/self-hosting`
-- `https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md`
+- `https://github.com/convex/static-hosting`
+- `https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md`
 - `https://agentskills.io/home`

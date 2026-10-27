@@ -384,7 +384,7 @@ Main HTTP router with all API endpoints. Defines:
 - `/api/skill?slug=<slug>` endpoint serving the raw generated SKILL.md for a single component (404 for unapproved, hidden or archived packages, missing skills, or `hideSeoAndSkillContentOnDetailPage`); backs the `/components/<slug>/SKILL.md` alias. Component markdown, llms.txt, and index outputs include skill links when a public skill exists
 - `/api/markdown-index` endpoint serving markdown listing of all approved components
 - `/api/llms.txt` endpoint serving a plain-text index of all approved components (header cross-links the official list)
-- `/api/get-convex-llms.txt` and `/api/get-convex-markdown` endpoints serving the same formats filtered to official Convex team components (`isOfficialPackage`: `github.com/get-convex/` repo or `@convex-dev/` npm scope); back the `/components/get-convex-llms.txt` and `/components/get-convex.md` aliases. Shared `buildLlmsTxtBody`/`buildMarkdownIndexBody` builders generate both the full and official lists; each entry carries a `- Version:` line from `packages.version` and both headers open with a one-line agent instruction (`AGENT_INSTRUCTION_LINE`) to fetch a component's SKILL.md before writing code. Per-component markdown and llms.txt outputs include the same instruction pointing at the skill URL when a public skill exists
+- `/api/get-convex-llms.txt` and `/api/get-convex-markdown` endpoints serving the same formats filtered to official Convex team components (`isOfficialPackage`: `github.com/convex/` repo or `@convex-dev/` npm scope); back the `/components/get-convex-llms.txt` and `/components/get-convex.md` aliases. Shared `buildLlmsTxtBody`/`buildMarkdownIndexBody` builders generate both the full and official lists; each entry carries a `- Version:` line from `packages.version` and both headers open with a one-line agent instruction (`AGENT_INSTRUCTION_LINE`) to fetch a component's SKILL.md before writing code. Per-component markdown and llms.txt outputs include the same instruction pointing at the skill URL when a public skill exists
 - `/api/component-llms?slug=<slug>` endpoint serving llms.txt format for a single component
 
 MCP endpoints temporarily disabled (commented out) while public host routing is being debugged:
@@ -611,7 +611,7 @@ Single provider aware repository URL parser used by both the browser and the Con
 
 ### `convex/orgRename.ts`
 
-One-off internal migration `migrateConvexOrgRename({ dryRun })` for the GitHub org rename. Rewrites `repositoryUrl` (`github.com/get-convex/` to `github.com/convex/`), `authorUsername` and `authorAvatar` on packages, and the official category description. Slugs and public URLs are untouched. Running it again changes nothing. Run with `npx convex run orgRename:migrateConvexOrgRename '{"dryRun":true}'` (add `--prod` for production).
+One-off internal migration `migrateConvexOrgRename({ dryRun })` for the GitHub org rename. Rewrites `repositoryUrl` (`github.com/convex/` to `github.com/convex/`), `authorUsername` and `authorAvatar` on packages, and the official category description. Slugs and public URLs are untouched. Running it again changes nothing. Run with `npx convex run orgRename:migrateConvexOrgRename '{"dryRun":true}'` (add `--prod` for production).
 
 ### `shared/officialComponents.ts`
 

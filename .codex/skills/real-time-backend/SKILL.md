@@ -147,4 +147,4 @@ These are the "AI slop" of backend architecture:
 
 **IMPORTANT**: Match implementation complexity to the problem. A simple CRUD feature needs a schema, a few queries, and a few mutations: not an event-sourced architecture with CQRS.
 
-Source: https://github.com/get-convex/real-time-backend-skill
+Source: https://github.com/convex/real-time-backend-skill

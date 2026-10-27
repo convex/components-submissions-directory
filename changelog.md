@@ -635,7 +635,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Verification: `npx tsc -p convex --noEmit` and `npm run build` passed; curl on the dev deployment confirmed version lines and instruction headers on all four index endpoints, frontmatter version + instruction line in rebuilt skills, and a simulated version bump (0.2.0 -> 0.2.1 -> 0.2.0 via `_updateNpmDataAndTimestamp`) rebuilt the skill both ways.
 
 - Official get-convex components list for agents and humans (2026-07-14 04:50 UTC)
-  - New auto-updating endpoints scoped to components built by the Convex team: `https://www.convex.dev/components/get-convex-llms.txt` and `https://www.convex.dev/components/get-convex.md`. A component qualifies when its `repositoryUrl` is under `github.com/get-convex/` or its npm name starts with `@convex-dev/` (`isOfficialPackage` in `convex/http.ts`). Both reuse `_listApprovedPackages` live at request time, so newly approved official components appear automatically with no cron or admin flag.
+  - New auto-updating endpoints scoped to components built by the Convex team: `https://www.convex.dev/components/get-convex-llms.txt` and `https://www.convex.dev/components/get-convex.md`. A component qualifies when its `repositoryUrl` is under `github.com/convex/` or its npm name starts with `@convex-dev/` (`isOfficialPackage` in `convex/http.ts`). Both reuse `_listApprovedPackages` live at request time, so newly approved official components appear automatically with no cron or admin flag.
   - `convex/http.ts`: extracted shared `buildLlmsTxtBody` and `buildMarkdownIndexBody` builders from the existing `/api/llms.txt` and `/api/markdown-index` handlers, added `GET /api/get-convex-llms.txt` and `GET /api/get-convex-markdown` routes, and cross-linked the official list from the main llms.txt header (and back).
   - `netlify.toml`: redirects for the two new `/components/` paths; `netlify/edge-functions/og-meta.ts`: direct proxy branches for both (redirects do not fire after the edge function runs).
   - `src/pages/Directory.tsx`: For Agents section gained a second row with `get-convex-llms.txt` and `get-convex.md` buttons plus copy explaining the official-only scope.
@@ -1016,7 +1016,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix security report modal stacking on component detail and submissions pages (2026-04-13)
   - Modal rendered inside sticky sidebar created a local stacking context, letting main content code blocks overlap it
   - Wrapped `SecurityReportModal` and `SubmitSecurityReportModal` in `createPortal(..., document.body)` so they mount at document root
-  - Ref: [PR #22](https://github.com/get-convex/components-submissions-directory/pull/22)
+  - Ref: [PR #22](https://github.com/convex/components-submissions-directory/pull/22)
   - Files: `src/pages/ComponentDetail.tsx`, `src/pages/Submit.tsx`
 
 ### Changed
@@ -1668,7 +1668,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Split the review into 8 critical pass criteria and 4 advisory notes while keeping the existing Admin JSON response shape unchanged
   - Updated `convex/aiReview.ts` runtime scoring so advisory misses no longer block a valid component from receiving `passed`
   - Verified with `npx convex codegen`, `npx tsc -p convex/tsconfig.json --noEmit --pretty false`, and `npm run build`
-  - Smoke tested the review flow against the stored `@convex-dev/stripe` package linked to `https://github.com/get-convex/stripe` and confirmed the new review completed with `aiReviewStatus: "passed"`
+  - Smoke tested the review flow against the stored `@convex-dev/stripe` package linked to `https://github.com/convex/stripe` and confirmed the new review completed with `aiReviewStatus: "passed"`
 
 - Admin AI review history now supports deleting older saved runs without removing the current latest snapshot (2026-03-08 17:04 UTC)
   - Added `deleteAiReviewRun` mutation in `convex/packages.ts` with a backend guard that blocks deletion of the latest saved review entry for a package

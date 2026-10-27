@@ -212,6 +212,6 @@ Ship first. Optimize after you have users.
 
 - [Optimizing OpenClaw (source post)](https://stack.convex.dev/optimizing-openclaw)
 - [Queries that Scale](https://docs.convex.dev/production/best-practices/)
-- [Triggers (convex-helpers)](https://github.com/get-convex/convex-helpers)
+- [Triggers (convex-helpers)](https://github.com/convex/convex-helpers)
 - [Custom Functions](https://docs.convex.dev/functions)
 - [Convex Insights CLI](https://docs.convex.dev/dashboard)

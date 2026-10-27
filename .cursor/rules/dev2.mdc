@@ -35,7 +35,7 @@ alwaysApply: true
 - Convex vector search: https://docs.convex.dev/search/vector-search
 - Convex file storage: https://docs.convex.dev/file-storage/upload-files
 - Convex dev flow: https://docs.convex.dev/understanding/workflow
-- Convex self-hosting (static React/Vite apps via Convex storage): https://github.com/get-convex/self-hosting
+- Convex self-hosting (static React/Vite apps via Convex storage): https://github.com/convex/static-hosting
 - @robelest/convex-auth (class-based Convex auth with OAuth, magic links, passkeys, groups, API keys, admin portal): https://github.com/robelest/convex-auth/
 - WorkOS AuthKit: https://workos.com/docs/authkit/vanilla/nodejs
 - Convex + WorkOS: https://docs.convex.dev/auth/authkit/

@@ -1,6 +1,6 @@
 ---
 name: convex-self-hosting
-description: Integrate Convex static self hosting into existing apps using the latest upstream instructions from get-convex/self-hosting every time. Use when setting up upload APIs, HTTP routes, deployment scripts, migration from external hosting, or troubleshooting static deploy issues across React, Vite, Next.js, and other frontends.
+description: Integrate Convex static self hosting into existing apps using the latest upstream instructions from convex/static-hosting every time. Use when setting up upload APIs, HTTP routes, deployment scripts, migration from external hosting, or troubleshooting static deploy issues across React, Vite, Next.js, and other frontends.
 ---
 
 # Convex self hosting skill
@@ -18,9 +18,9 @@ bash .agents/skills/convex-self-hosting/scripts/check-upstream.sh
 ```
 
 1. Read latest integration guide:
-   - `https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md`
+   - `https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md`
 2. Read latest README manual setup section:
-   - `https://github.com/get-convex/self-hosting?tab=readme-ov-file#manual-setup-1`
+   - `https://github.com/convex/static-hosting?tab=readme-ov-file#manual-setup-1`
 3. Read Convex docs index for current guidance:
    - `https://docs.convex.dev/llms.txt`
 4. Confirm package publish state:
@@ -32,7 +32,7 @@ If upstream docs conflict with local rules, follow upstream docs and explain wha
 
 Ask these before implementing:
 
-1. Confirm `get-convex/self-hosting` is the source of truth for this setup.
+1. Confirm `convex/static-hosting` is the source of truth for this setup.
 2. Is the target app Vite, Next.js, Expo web export, or another bundler.
 3. Do they want root path hosting or a prefix like `/app`.
 4. Do they want one shot deploy or separate backend and static deploy steps.
@@ -58,7 +58,7 @@ npm install @convex-dev/self-hosting
 If package is missing on npm, use GitHub source and pin to commit or tag.
 
 ```bash
-npm install github:get-convex/self-hosting#main
+npm install github:convex/static-hosting#main
 ```
 
 If project policy requires deterministic builds, ask for a commit SHA and pin to it.
@@ -172,7 +172,7 @@ If `get-convex/convex-agent-plugins` is present, follow its Convex rules with th
 - preserve strict TypeScript in generated Convex and frontend code
 
 Reference:
-- `https://github.com/get-convex/convex-agent-plugins`
+- `https://github.com/convex/convex-agent-plugins`
 
 ## Troubleshooting checklist
 
@@ -200,9 +200,9 @@ Never claim setup is complete without showing these four outputs.
 
 ## Source links
 
-- `https://github.com/get-convex/self-hosting`
-- `https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md`
-- `https://github.com/get-convex/self-hosting?tab=readme-ov-file#manual-setup-1`
+- `https://github.com/convex/static-hosting`
+- `https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md`
+- `https://github.com/convex/static-hosting?tab=readme-ov-file#manual-setup-1`
 - `https://docs.convex.dev/llms.txt`
-- `https://github.com/get-convex/convex-agent-plugins`
+- `https://github.com/convex/convex-agent-plugins`
 - `https://github.com/agentskills/agentskills`
