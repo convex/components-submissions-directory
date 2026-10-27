@@ -453,7 +453,7 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
   - Verification: `ReadLints` clean on `promptComposer.ts`; prompt is a pure string template so no runtime behavior change beyond the label text.
 
 - [x] Official get-convex components list for agents (2026-07-14 04:50 UTC)
-  - New `/components/get-convex-llms.txt` and `/components/get-convex.md` endpoints listing only components with a `github.com/get-convex/` repo or `@convex-dev/` npm scope. Served live from `_listApprovedPackages` (auto-updates on approval). Shared `buildLlmsTxtBody`/`buildMarkdownIndexBody` builders keep the full-directory endpoints byte-compatible; main llms.txt and the official list cross-link each other. Netlify redirects + og-meta proxy branches added; Directory For Agents section gained the two new buttons with official-only copy.
+  - New `/components/get-convex-llms.txt` and `/components/get-convex.md` endpoints listing only components with a `github.com/convex/` repo or `@convex-dev/` npm scope. Served live from `_listApprovedPackages` (auto-updates on approval). Shared `buildLlmsTxtBody`/`buildMarkdownIndexBody` builders keep the full-directory endpoints byte-compatible; main llms.txt and the official list cross-link each other. Netlify redirects + og-meta proxy branches added; Directory For Agents section gained the two new buttons with official-only copy.
   - PRD: `prds/get-convex-official-list.md`
   - Files: `convex/http.ts`, `netlify.toml`, `netlify/edge-functions/og-meta.ts`, `src/pages/Directory.tsx`, `changelog.md`, `files.md`
   - Verification: `npx tsc -p convex --noEmit` and `npm run build` passed; curl on dev deployment returned 200 with exactly the 10 `@convex-dev/` components on both routes; full-directory endpoints unchanged apart from the cross-link header line.
@@ -817,7 +817,7 @@ Session updates complete on 2026-04-21 UTC.
   - Wrapped `SecurityReportModal` and `SubmitSecurityReportModal` in `createPortal(..., document.body)`
   - Sticky sidebar created a local stacking context causing main content to overlap the modal
   - Added `import { createPortal } from "react-dom"` to both files
-  - Ref: [PR #22](https://github.com/get-convex/components-submissions-directory/pull/22)
+  - Ref: [PR #22](https://github.com/convex/components-submissions-directory/pull/22)
   - Files: `src/pages/ComponentDetail.tsx`, `src/pages/Submit.tsx`
 
 - [x] Rename Security Analyze to Community scan via Socket and add takedown FAQ (2026-04-13 23:30 UTC)

@@ -80,7 +80,7 @@ Asking a model to reproduce a schema as a validator increases the chance it inve
 
 ### System field duplication
 
-Unless you're using helper utilities, return validators drag you into re-declaring `_id` and `_creationTime` over and over. If you want heavy validator usage, look at the validator utilities in [convex-helpers](https://github.com/get-convex/convex-helpers).
+Unless you're using helper utilities, return validators drag you into re-declaring `_id` and `_creationTime` over and over. If you want heavy validator usage, look at the validator utilities in [convex-helpers](https://github.com/convex/convex-helpers).
 
 Convex already provides ergonomic type helpers like `Doc<>` and `WithoutSystemFields`, so a lot of the time you can keep code tidier by leaning on normal TypeScript types and inference.
 
@@ -186,4 +186,4 @@ When AI does use return validators, encourage it to:
 - Convex TypeScript docs (Doc<>, WithoutSystemFields): https://docs.convex.dev/generated-api/server#doc
 - Static codegen docs: https://docs.convex.dev/production/best-practices/static-codegen
 - OpenAPI docs: https://docs.convex.dev/http-api/openapi
-- convex-helpers validator utilities: https://github.com/get-convex/convex-helpers
+- convex-helpers validator utilities: https://github.com/convex/convex-helpers

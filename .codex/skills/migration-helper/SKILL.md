@@ -145,4 +145,4 @@ export default crons;
 4. **Don't delete old field too soon**: Wait until all data migrated
 5. **Test thoroughly**: Verify migration on dev environment first
 
-Source: https://github.com/get-convex/convex-agent-plugins
+Source: https://github.com/convex/convex-agent-plugins

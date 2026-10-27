@@ -191,4 +191,4 @@ async function requireTeamAccess(
 - [ ] Clear error messages ("Not authenticated", "Unauthorized")
 - [ ] Client auth provider configured
 
-Source: https://github.com/get-convex/agent-skills
+Source: https://github.com/convex/agent-skills

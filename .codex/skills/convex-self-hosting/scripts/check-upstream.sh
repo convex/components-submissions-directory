@@ -4,11 +4,11 @@ set -euo pipefail
 echo "== Convex self hosting upstream check =="
 echo "timestamp_utc=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-SELF_HOSTING_REPO="https://github.com/get-convex/self-hosting"
-INTEGRATION_URL="https://raw.githubusercontent.com/get-convex/self-hosting/main/INTEGRATION.md"
-MANUAL_SETUP_URL="https://github.com/get-convex/self-hosting?tab=readme-ov-file#manual-setup-1"
+SELF_HOSTING_REPO="https://github.com/convex/static-hosting"
+INTEGRATION_URL="https://raw.githubusercontent.com/convex/static-hosting/main/INTEGRATION.md"
+MANUAL_SETUP_URL="https://github.com/convex/static-hosting?tab=readme-ov-file#manual-setup-1"
 CONVEX_LLMS_URL="https://docs.convex.dev/llms.txt"
-PLUGIN_REPO_URL="https://github.com/get-convex/convex-agent-plugins"
+PLUGIN_REPO_URL="https://github.com/convex/convex-agent-plugins"
 
 echo
 echo "sources:"
@@ -19,7 +19,7 @@ echo "  convex_llms=${CONVEX_LLMS_URL}"
 echo "  plugins=${PLUGIN_REPO_URL}"
 
 echo
-echo "head_commit_self_hosting=$(git ls-remote https://github.com/get-convex/self-hosting.git HEAD | awk '{print $1}')"
+echo "head_commit_self_hosting=$(git ls-remote https://github.com/convex/static-hosting.git HEAD | awk '{print $1}')"
 
 echo
 echo "checking npm publish status..."

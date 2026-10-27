@@ -178,4 +178,4 @@ export const processExpiredTasks = internalMutation({
 - [ ] If using Node.js APIs: `"use node"` at top of file
 - [ ] If file has `"use node"`: Only actions (no queries/mutations)
 
-Source: https://github.com/get-convex/convex-agent-plugins
+Source: https://github.com/convex/convex-agent-plugins
