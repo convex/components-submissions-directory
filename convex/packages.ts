@@ -35,6 +35,14 @@ import {
   OFFICIAL_CATEGORY_SLUG,
 } from "../shared/officialComponents";
 import { parseRepoUrl } from "../shared/repoUrl";
+import {
+  assertEmailActive,
+  getAccountBlockMessage,
+  isAdminEmail,
+  logUserActivity,
+  packageDisplayName,
+  type UserActivityEvent,
+} from "./userAccess";
 
 // Shared error copy for every place a repository URL is validated.
 const INVALID_REPO_URL_MESSAGE =
@@ -43,7 +51,7 @@ const INVALID_REPO_URL_MESSAGE =
 // ============ HELPER: Recount category package/verified counts ============
 // Recalculates denormalized counts on the categories table after approval/visibility changes.
 // Only patches categories whose counts actually changed (avoids subscription invalidation).
-async function recountCategoryStats(ctx: MutationCtx) {
+export async function recountCategoryStats(ctx: MutationCtx) {
   const allCategories = await ctx.db.query("categories").take(1000);
   const approvedPackages = await ctx.db
     .query("packages")
@@ -333,8 +341,27 @@ async function requirePackageOwnerOrAdmin(
   if (!userOwnsPackage(pkg, userEmail)) {
     throw new ConvexError("You can only modify your own submissions");
   }
+  await assertEmailActive(ctx, userEmail);
 
   return pkg;
+}
+
+// ============ HELPER: Log an owner's change to the admin Activity tab ============
+// Skips admins so the log stays focused on submitter behavior.
+async function logOwnerActivity(
+  ctx: MutationCtx,
+  pkg: Doc<"packages">,
+  event: Omit<UserActivityEvent, "actorEmail" | "actorName" | "pkg">,
+): Promise<void> {
+  const identity = await ctx.auth.getUserIdentity();
+  const email = identity?.email;
+  if (!email || isAdminEmail(email)) return;
+  await logUserActivity(ctx, {
+    ...event,
+    actorEmail: email,
+    actorName: identity?.name ?? undefined,
+    pkg,
+  });
 }
 
 // ============ SECURITY: Public-safe package fields ============
@@ -1295,8 +1322,12 @@ export const submitPackage = action({
       internal.packages._checkSubmitPrereqs,
       {
         name: packageName,
+        submitterEmail,
       },
     );
+    if (prereqs.blockedMessage) {
+      throw new ConvexError(prereqs.blockedMessage);
+    }
     if (prereqs.existing) {
       throw new ConvexError(
         `A component with the npm package "${packageName}" has already been submitted. ` +
@@ -1622,7 +1653,7 @@ async function insertNewPackage(
     finalSlug = await generateUniqueSlug(ctx, finalSlug);
   }
 
-  return await ctx.db.insert("packages", {
+  const packageId: Id<"packages"> = await ctx.db.insert("packages", {
     name: args.name,
     description: args.description,
     installCommand: args.installCommand,
@@ -1663,6 +1694,20 @@ async function insertNewPackage(
     contentModelVersion: args.contentModelVersion,
     skillMd: args.skillMd,
   });
+
+  if (args.submitterEmail) {
+    const displayName: string = args.componentName || args.name;
+    await logUserActivity(ctx, {
+      actorEmail: args.submitterEmail,
+      actorName: args.submitterName,
+      type: "submitted",
+      packageId,
+      packageName: displayName,
+      summary: `Submitted ${displayName}`,
+    });
+  }
+
+  return packageId;
 }
 
 // Admin mutation: Update npm data for a package (preserves submitter info, review status, etc.)
@@ -2201,14 +2246,18 @@ export const _getPackageByName = internalQuery({
 
 // Combined query: check if package exists + get admin settings in one round trip
 export const _checkSubmitPrereqs = internalQuery({
-  args: { name: v.string() },
+  args: { name: v.string(), submitterEmail: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("packages")
       .withIndex("by_name", (q) => q.eq("name", args.name))
       .first();
     const settings = await getAdminSettingsHelper(ctx);
-    return { existing: !!existing, settings };
+    // Deactivated and banned accounts can't submit
+    const blockedMessage = args.submitterEmail
+      ? await getAccountBlockMessage(ctx, args.submitterEmail)
+      : null;
+    return { existing: !!existing, settings, blockedMessage };
   },
 });
 
@@ -4126,6 +4175,7 @@ export const addPackageComment = mutation({
     if (!isAdmin && !userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only message for your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Insert with read state, optional GitHub mirror, and Slack notice.
     return await insertPackageComment(ctx, {
@@ -4174,8 +4224,13 @@ export const deletePackageComment = mutation({
     if (comment.authorEmail !== userEmail && !isSystemRowForAdmin) {
       throw new ConvexError("You can only delete your own messages");
     }
+    await assertEmailActive(ctx, userEmail);
 
     await ctx.db.delete("packageComments", args.commentId);
+    await logOwnerActivity(ctx, pkg, {
+      type: "message_deleted",
+      summary: `Deleted a message: ${comment.content}`,
+    });
     return null;
   },
 });
@@ -4220,11 +4275,19 @@ export const updatePackageCommentStatus = mutation({
     if (comment.authorEmail !== userEmail && !isSystemRowForAdmin) {
       throw new ConvexError("You can only update your own messages");
     }
+    await assertEmailActive(ctx, userEmail);
 
     await ctx.db.patch(comment._id, {
       status: args.status,
       statusUpdatedAt: Date.now(),
     });
+    if ((comment.status ?? "active") !== args.status) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "message_status_changed",
+        summary: `Marked a message ${args.status === "active" ? "active again" : args.status}`,
+        changedFields: [args.status],
+      });
+    }
     return null;
   },
 });
@@ -5423,6 +5486,7 @@ export const requestSubmissionRefresh = mutation({
         "You can only request refresh for your own submissions",
       );
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Create a private user<->admin message
     await ctx.db.insert("packageComments", {
@@ -5444,6 +5508,14 @@ export const requestSubmissionRefresh = mutation({
       args.note,
     );
     await ctx.scheduler.runAfter(0, internal.slack.sendMessage, { text });
+
+    await logUserActivity(ctx, {
+      actorEmail: userEmail,
+      actorName: identity?.name ?? undefined,
+      type: "rereview_requested",
+      pkg,
+      summary: args.note,
+    });
 
     return null;
   },
@@ -5474,6 +5546,7 @@ export const refreshMyReadme = mutation({
     if (!userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only refresh your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
     if (!pkg.repositoryUrl) {
       throw new ConvexError("This submission has no repository URL");
     }
@@ -5507,6 +5580,11 @@ export const refreshMyReadme = mutation({
     await ctx.scheduler.runAfter(0, internal.seoContent.refreshReadme, {
       packageId: args.packageId,
       source: "profile",
+    });
+
+    await logOwnerActivity(ctx, pkg, {
+      type: "readme_refresh_requested",
+      summary: "Requested a README refresh from the repository",
     });
 
     return null;
@@ -5710,9 +5788,20 @@ export const setMySubmissionVisibility = mutation({
     if (!userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only modify your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Users can only toggle between visible and hidden (not archived)
     await ctx.db.patch(args.packageId, { visibility: args.visibility });
+    if ((pkg.visibility ?? "visible") !== args.visibility) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "visibility_changed",
+        summary:
+          args.visibility === "hidden"
+            ? "Hid the submission from the directory"
+            : "Made the submission visible again",
+        changedFields: ["visibility"],
+      });
+    }
     return null;
   },
 });
@@ -5738,6 +5827,7 @@ export const requestDeleteMySubmission = mutation({
     if (!userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only delete your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Mark for deletion instead of immediate delete
     await ctx.db.patch(args.packageId, {
@@ -5747,6 +5837,12 @@ export const requestDeleteMySubmission = mutation({
       // Hide from directory immediately
       visibility: "hidden",
     });
+    if (!pkg.markedForDeletion) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "deletion_requested",
+        summary: "Asked to delete the submission",
+      });
+    }
 
     return null;
   },
@@ -5771,6 +5867,7 @@ export const cancelDeleteMySubmission = mutation({
     if (!userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only manage your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Remove deletion mark
     await ctx.db.patch(args.packageId, {
@@ -5778,6 +5875,12 @@ export const cancelDeleteMySubmission = mutation({
       markedForDeletionAt: undefined,
       markedForDeletionBy: undefined,
     });
+    if (pkg.markedForDeletion) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "deletion_cancelled",
+        summary: "Cancelled the deletion request",
+      });
+    }
 
     return null;
   },
@@ -6142,9 +6245,78 @@ export const deleteMyAccount = mutation({
       }
     }
 
+    await logUserActivity(ctx, {
+      actorEmail: userEmail,
+      type: "account_deleted",
+      summary:
+        additionalEmailPackages.length > 0
+          ? `Deleted their account and left ${additionalEmailPackages.length} shared submission${additionalEmailPackages.length === 1 ? "" : "s"}`
+          : "Deleted their account",
+    });
+
     return null;
   },
 });
+
+// Owner edits grouped for the Activity tab. Derived fields (skillMd, content
+// model flags, scan status) are left out so the log shows what the user typed.
+const SUBMISSION_FIELD_GROUPS: Record<
+  "links_updated" | "readme_updated" | "details_updated",
+  Record<string, string>
+> = {
+  links_updated: {
+    repositoryUrl: "repo URL",
+    npmUrl: "npm URL",
+    demoUrl: "demo URL",
+    videoUrl: "video URL",
+  },
+  readme_updated: {
+    readmeIncludedMarkdown: "README",
+    readmeIncludeSource: "README source",
+  },
+  details_updated: {
+    componentName: "name",
+    shortDescription: "short description",
+    longDescription: "long description",
+    category: "category",
+    tags: "tags",
+    generatedDescription: "description",
+    generatedUseCases: "use cases",
+    generatedHowItWorks: "how it works",
+  },
+};
+
+async function logSubmissionEdits(
+  ctx: MutationCtx,
+  pkg: Doc<"packages">,
+  updates: Record<string, unknown>,
+): Promise<void> {
+  const previous = pkg as unknown as Record<string, unknown>;
+  const differs = (field: string) =>
+    field in updates &&
+    JSON.stringify(updates[field] ?? null) !==
+      JSON.stringify(previous[field] ?? null);
+
+  for (const [type, fields] of Object.entries(SUBMISSION_FIELD_GROUPS) as Array<
+    [keyof typeof SUBMISSION_FIELD_GROUPS, Record<string, string>]
+  >) {
+    const changed = Object.keys(fields).filter(differs);
+    if (changed.length === 0) continue;
+    const labels = changed.map((field) => fields[field]);
+
+    let summary: string;
+    if (type === "links_updated") {
+      summary = `Changed ${changed
+        .map((field) => `${fields[field]} to ${String(updates[field] || "none")}`)
+        .join(", ")}`;
+    } else if (type === "readme_updated") {
+      summary = "Updated the README shown on the component page";
+    } else {
+      summary = `Edited ${labels.join(", ")}`;
+    }
+    await logOwnerActivity(ctx, pkg, { type, summary, changedFields: labels });
+  }
+}
 
 // Mutation: User updates their own submission fields
 function buildSubmissionUpdates(args: any, pkg: any) {
@@ -6259,6 +6431,7 @@ export const updateMySubmission = mutation({
     if (!userOwnsPackage(pkg, userEmail)) {
       throw new ConvexError("You can only edit your own submissions");
     }
+    await assertEmailActive(ctx, userEmail);
 
     // Detect real repo and npm link changes; empty input means no change.
     const nextRepoUrl = args.repositoryUrl?.trim();
@@ -6318,6 +6491,7 @@ export const updateMySubmission = mutation({
 
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(args.packageId, updates);
+      await logSubmissionEdits(ctx, pkg, updates);
     }
 
     if (scanQueued) {
@@ -6929,6 +7103,7 @@ export const generateUploadUrl = mutation({
     if (!identity) {
       throw new ConvexError("Authentication required");
     }
+    if (identity.email) await assertEmailActive(ctx, identity.email);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -6942,7 +7117,7 @@ export const saveThumbnail = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requirePackageOwnerOrAdmin(ctx, args.packageId);
+    const pkg = await requirePackageOwnerOrAdmin(ctx, args.packageId);
     await requireUploadedFileType(
       ctx,
       args.storageId,
@@ -6955,6 +7130,11 @@ export const saveThumbnail = mutation({
       thumbnailStorageId: args.storageId,
       thumbnailUrl: url ?? undefined,
       thumbnailUploadedByUser: true,
+    });
+    await logOwnerActivity(ctx, pkg, {
+      type: "media_updated",
+      summary: "Uploaded a new thumbnail",
+      changedFields: ["thumbnail"],
     });
     return null;
   },
@@ -6970,7 +7150,7 @@ export const saveLogo = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requirePackageOwnerOrAdmin(ctx, args.packageId);
+    const owned = await requirePackageOwnerOrAdmin(ctx, args.packageId);
     await requireUploadedFileType(
       ctx,
       args.storageId,
@@ -6984,6 +7164,11 @@ export const saveLogo = mutation({
     await ctx.db.patch(args.packageId, {
       logoStorageId: args.storageId,
       logoUrl: url ?? undefined,
+    });
+    await logOwnerActivity(ctx, owned, {
+      type: "media_updated",
+      summary: "Uploaded a new logo",
+      changedFields: ["logo"],
     });
 
     // Check if auto thumbnail generation is enabled
@@ -7013,11 +7198,18 @@ export const clearLogo = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requirePackageOwnerOrAdmin(ctx, args.packageId);
+    const pkg = await requirePackageOwnerOrAdmin(ctx, args.packageId);
     await ctx.db.patch(args.packageId, {
       logoStorageId: undefined,
       logoUrl: undefined,
     });
+    if (pkg.logoStorageId || pkg.logoUrl) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "media_updated",
+        summary: "Removed the logo",
+        changedFields: ["logo"],
+      });
+    }
     return null;
   },
 });
@@ -7029,12 +7221,19 @@ export const clearThumbnail = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requirePackageOwnerOrAdmin(ctx, args.packageId);
+    const pkg = await requirePackageOwnerOrAdmin(ctx, args.packageId);
     await ctx.db.patch(args.packageId, {
       thumbnailUrl: undefined,
       thumbnailStorageId: undefined,
       thumbnailUploadedByUser: undefined,
     });
+    if (pkg.thumbnailStorageId || pkg.thumbnailUrl) {
+      await logOwnerActivity(ctx, pkg, {
+        type: "media_updated",
+        summary: "Removed the thumbnail",
+        changedFields: ["thumbnail"],
+      });
+    }
     return null;
   },
 });

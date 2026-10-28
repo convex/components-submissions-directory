@@ -1086,8 +1086,8 @@ export const previewDirectoryContent = action({
     readmeIncludeSource: v.optional(v.union(v.literal("markers"), v.literal("full"))),
   }),
   handler: async (ctx, args) => {
-    const userKey = await requireContentGenerationUserKey(ctx);
-    await enforceContentGenerationRateLimit(ctx, userKey, args.source);
+    const { userKey, email } = await requireContentGenerationUserKey(ctx);
+    await enforceContentGenerationRateLimit(ctx, userKey, args.source, email);
 
     const { customPromptTemplate, providerSettings, githubReadme, convexDocsContext, readmeBlock } =
       await fetchPreviewContext(ctx, args.repositoryUrl);
@@ -1125,7 +1125,9 @@ export const previewDirectoryContent = action({
   },
 });
 
-async function requireContentGenerationUserKey(ctx: ActionCtx): Promise<string> {
+async function requireContentGenerationUserKey(
+  ctx: ActionCtx
+): Promise<{ userKey: string; email?: string }> {
   const identity = await ctx.auth.getUserIdentity();
   const userKey = identity?.subject ?? identity?.email?.trim().toLowerCase();
 
@@ -1133,19 +1135,24 @@ async function requireContentGenerationUserKey(ctx: ActionCtx): Promise<string> 
     throw new ConvexError("Authentication required to generate content. Please sign in first.");
   }
 
-  return userKey;
+  return { userKey, email: identity?.email ?? undefined };
 }
 
 async function enforceContentGenerationRateLimit(
   ctx: ActionCtx,
   userKey: string,
-  source: "submit" | "profile"
+  source: "submit" | "profile",
+  email?: string
 ): Promise<void> {
   const rateLimit = await ctx.runQuery(internal.contentGenerationLimits._checkRateLimit, {
     userKey,
     now: Date.now(),
+    email,
   });
 
+  if (rateLimit.blockedMessage) {
+    throw new ConvexError(rateLimit.blockedMessage);
+  }
   if (!rateLimit.allowed) {
     const resetMessage = rateLimit.resetAt
       ? ` Try again after ${new Date(rateLimit.resetAt).toLocaleString()}.`

@@ -6,6 +6,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { parseGitHubRepo } from "./githubIssues";
 import { formatSlackNotification } from "./slack";
+import { logUserActivity } from "./userAccess";
 import {
   buildApprovalMessage,
   buildRejectionMessage,
@@ -68,6 +69,32 @@ export async function insertPackageComment(
       { commentId },
     );
   }
+
+  // Submitter messages after the team has written count as replies
+  let activityType: "system_message" | "admin_reply" | "reply_sent" | "message_sent";
+  if (args.source === "system") {
+    activityType = "system_message";
+  } else if (args.isAdmin) {
+    activityType = "admin_reply";
+  } else {
+    const thread = await ctx.db
+      .query("packageComments")
+      .withIndex("by_package_and_created", (q) =>
+        q.eq("packageId", args.pkg._id),
+      )
+      .order("desc")
+      .take(50);
+    activityType = thread.some((c) => c._id !== commentId && isTeamComment(c))
+      ? "reply_sent"
+      : "message_sent";
+  }
+  await logUserActivity(ctx, {
+    actorEmail: args.authorEmail,
+    actorName: args.authorName,
+    type: activityType,
+    pkg: args.pkg,
+    summary: args.content,
+  });
 
   const fromLabel =
     args.source === "system"

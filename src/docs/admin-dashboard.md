@@ -35,8 +35,10 @@ Non-admin users are automatically redirected to their profile page. Unauthentica
 | API | API access controls and analytics |
 | Logs | README update logs |
 | Broadcast | GitHub issue broadcasts and reply sync |
+| Activity | Live timeline of user submissions, messages, and edits ([details](/components/documentation/admin-activity)) |
+| Users | Search users and kick, deactivate, ban, or reactivate them ([details](/components/documentation/admin-users)) |
 
-Tool tabs (Settings, API, Logs, Growth, Broadcast) have no package count badge. Filter tabs wrap instead of horizontally scrolling, and tooltips appear above the bar.
+Tool tabs (Settings, API, Logs, Growth, Broadcast, Activity, Users) have no package count badge. Filter tabs wrap instead of horizontally scrolling, and tooltips appear above the bar.
 
 ### Package list
 

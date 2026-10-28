@@ -1,5 +1,7 @@
 # Task List
 
+Session updates complete on 2026-10-28 00:48 UTC. Admin Activity and Users tabs are live on dev (`third-hedgehog-429`) after Broadcast: live user timeline with search and links to each submission card, user search with kick, deactivate, ban and reactivate plus keep, hide, archive or delete for their submissions, server side write gate, and `AccountStatusGuard`. Dev history imported (43 rows, rerun added none). Menus and tooltips that tables and scroll areas clipped now render in portals (`RowActionMenu`, `HoverTooltip`). Typechecks, build and convex-doctor pass. Needs a signed in walkthrough and a prod deploy. PRDs: `prds/admin-activity-and-users.md`, `prds/clipped-menus-and-tooltips.md`.
+
 Session updates complete on 2026-10-16 07:20 UTC. GitHub org rename (get-convex to convex) fixed on dev: owner alias in `parseRepoUrl`, avatar safety net, dead org links, copy, and the `orgRename` migration. No public URLs changed. Git remote now points at `convex/components-submissions-directory`. Convex MCP restarted and now targets `third-hedgehog-429` and `giant-grouse-674`. Prod deploy and migration wait on approval. PRD: `prds/convex-github-org-rename.md`.
 
 Session updates complete on 2026-10-16 06:30 UTC. Pulled `origin/main` (`18ed1d6` convex-helpers ^0.1.128, `50e7129` commit package-lock.json) with rebase and autostash. The unpushed docs commit and the uncommitted approval message change are on top. `npm install`, both typechecks and `vite build` pass. Backup branch `backup/pre-pull-2026-10-16`. The old ignored local lockfile was saved to `/tmp/package-lock.local-2026-09-09.json`.
@@ -33,6 +35,12 @@ Earlier session: 2026-09-24 01:46 UTC. Review outcome messages shipped to dev: f
 Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted everywhere GitHub ones are read: submit and edit validation, preflight, README fetch for content generation, issues list and counts, author avatar, markdown link rewriting, host icons and copy. GitHub write features (issue mirror, broadcast, reply sync) stay GitHub only. One backend file (`convex/aiReview.ts`) is blocked by a lint hook false positive; see the to do below.
 
 ## to do
+
+- [ ] Admin Activity log and Users management: rollout (PRD: `prds/admin-activity-and-users.md`)
+  - [x] Fix the Convex CLI login for `third-hedgehog-429`, then `npx convex dev` to push and regenerate `convex/_generated` (2026-10-28 00:16 UTC; all new tables and indexes added, real `tsc -p convex` and `tsc -b` pass)
+  - [ ] Signed-in dev walkthrough with a non `@convex.dev` test account: submit, message, reply from GitHub, edit links and README, upload a logo, then kick, deactivate (notice shows, writes fail), ban (signed out, API key revoked), reactivate
+  - [x] Import existing history on dev twice; the second run adds nothing (2026-10-28 00:30 UTC via `userActivity:_backfillBatch`: 43 rows, 19 submitted, 23 admin replies, 1 user reply; rerun stayed at 43. The 29 seeded packages with no submitter email get no submitted row, by design)
+  - [ ] Prod: `npx convex deploy`, Netlify deploy, then Import existing history on prod
 
 - [ ] Convex GitHub org rename, get-convex to convex (PRD: `prds/convex-github-org-rename.md`)
   - [x] Git remote switched to `convex/components-submissions-directory` (2026-10-16 07:08 UTC)
@@ -108,6 +116,21 @@ Previous session: 2026-09-21 03:25 UTC. gitlab.com repositories are accepted eve
   - Add an entry chunk size budget to CI
   - Add a post deploy check that `curl -I` on a hashed asset returns `immutable`
 ## completed
+
+- [x] Clipped menus and tooltips fixed (2026-10-28 00:48 UTC)
+  - [x] Users tab Manage menu moved to the new portal `RowActionMenu` (flips up, Escape, arrow keys); team rows show "Protected" (2026-10-28 00:42 UTC)
+  - [x] Audit of every popover in `src/` found clipped tooltips on the last Submit table row, the AI Reviews history delete button, and mobile FilterTabs (2026-10-28 00:44 UTC)
+  - [x] Shared portal `HoverTooltip` replaces the `Tooltip` helpers in `Admin.tsx` and `Submit.tsx` (2026-10-28 00:46 UTC)
+  - [x] `tsc -b`, ESLint on new files, no new errors in `Admin.tsx` or `Submit.tsx`, `vite build` (2026-10-28 00:47 UTC)
+  - [ ] Signed in browser check (needs an admin session). PRD: `prds/clipped-menus-and-tooltips.md`
+- [x] Admin Activity and Users tabs, code complete (2026-10-28 00:20 UTC)
+  - [x] Schema: `userActivity` and `userAccounts` tables with indexes and search indexes (2026-10-27 23:58 UTC)
+  - [x] Backend: `convex/userValidators.ts`, `convex/userAccess.ts`, `convex/userActivity.ts`, `convex/userAccounts.ts`, daily purge cron (2026-10-28 00:02 UTC)
+  - [x] Gate and log user write paths in `packages.ts`, `packageMessaging.ts`, `githubReplySync.ts`, `apiKeys.ts`, `contentGenerationLimits.ts` and `seoContent.ts` (2026-10-28 00:06 UTC)
+  - [x] Admin Activity and Users tabs, `UserActionModal`, wiring after Broadcast, `#admin-activity` and `#admin-users` hash links, cross-links (2026-10-28 00:12 UTC)
+  - [x] `AccountStatusGuard` in the app shell (2026-10-28 00:13 UTC)
+  - [x] App and `convex/` typechecks, `vite build`, ESLint (0 errors on new files), convex-doctor 92 Healthy. Typechecked against a temp copy with the new modules added to `api.d.ts`, since codegen needs the CLI login (2026-10-28 00:16 UTC)
+  - [x] Docs: `src/docs/admin-activity.md`, `src/docs/admin-users.md`, registered in Documentation, index and dashboard docs (2026-10-28 00:20 UTC)
 
 - [x] Sync with upstream main (2026-10-16 06:30 UTC)
   - [x] Pulled `18ed1d6` (convex-helpers ^0.1.128) and `50e7129` (package-lock.json now committed, removed from `.gitignore`)

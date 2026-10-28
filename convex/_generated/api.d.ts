@@ -42,6 +42,10 @@ import type * as seoContentDb from "../seoContentDb.js";
 import type * as slack from "../slack.js";
 import type * as thumbnailGenerator from "../thumbnailGenerator.js";
 import type * as thumbnails from "../thumbnails.js";
+import type * as userAccess from "../userAccess.js";
+import type * as userAccounts from "../userAccounts.js";
+import type * as userActivity from "../userActivity.js";
+import type * as userValidators from "../userValidators.js";
 
 import type {
   ApiFromModules,
@@ -84,6 +88,10 @@ declare const fullApi: ApiFromModules<{
   slack: typeof slack;
   thumbnailGenerator: typeof thumbnailGenerator;
   thumbnails: typeof thumbnails;
+  userAccess: typeof userAccess;
+  userAccounts: typeof userAccounts;
+  userActivity: typeof userActivity;
+  userValidators: typeof userValidators;
 }>;
 
 /**

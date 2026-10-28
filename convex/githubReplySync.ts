@@ -34,6 +34,7 @@ import {
   parseIssueKey,
 } from "./githubIssues";
 import { formatSlackNotification } from "./slack";
+import { logUserActivity } from "./userAccess";
 
 // ============ Constants ============
 
@@ -332,6 +333,15 @@ export const _mirrorGithubReplies = internalMutation({
         githubCommentUrl: reply.commentUrl,
         githubAuthorLogin: reply.authorLogin,
         githubBroadcastId: reply.broadcastId,
+      });
+      await logUserActivity(ctx, {
+        actorEmail: mirroredAuthorEmail(pkg, reply.authorLogin),
+        actorName: reply.authorLogin,
+        actorRole: "user",
+        type: "github_reply",
+        pkg,
+        summary: reply.body,
+        createdAt: reply.createdAt,
       });
       inserted += 1;
 

@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Admin and Submit menus and tooltips no longer get cut off by tables and scroll areas (2026-10-28 00:48 UTC)
+  - The Users tab Manage menu opened inside a table wrapper with `overflow-hidden`, so only a sliver showed. It now uses `RowActionMenu`, a portal menu that opens upward near the bottom of the window, closes on outside click, scroll, or Escape, and works with the arrow keys. Team rows show a "Protected" label instead of a faded disabled button, and Ban sits last behind a divider.
+  - The `Tooltip` helpers in `Admin.tsx` and `Submit.tsx` are now one shared `HoverTooltip` that renders in a portal, flips when it runs out of room, and clamps to the screen. This fixes tooltips on the last Submit table row, the delete tooltip in the AI Reviews history drawer, and FilterTabs tooltips on mobile. They also show on keyboard focus, and no longer leave a hidden element in the layout.
+  - Files: `src/components/admin/RowActionMenu.tsx` (new), `src/components/HoverTooltip.tsx` (new), `src/components/admin/AdminUsersTab.tsx`, `src/pages/Admin.tsx`, `src/pages/Submit.tsx`. PRD: `prds/clipped-menus-and-tooltips.md`
+
 - Logos, social icons and favicons are cached, and directory links skip the www trailing slash redirect (2026-10-22 05:30 UTC)
   - The root SVGs and favicons under `/components/` went through the `og-meta` edge function, which passed them straight through with `max-age=0, must-revalidate`, so every visit revalidated them. `og-meta` now skips `/components/*.svg`, `*.png`, `*.ico` and `*.webp` via `excludedPath`, and `netlify/_headers` gives the linked files `public, max-age=86400, stale-while-revalidate=604800` (not immutable, since they are not content-hashed).
   - Favicon links in `index.html` were relative, so they resolved against the page URL: from `www.convex.dev/components` they pointed at the Next.js site's root, and from `/components/categories/<slug>` at SPA routes that return HTML. They now start with `/`, which Vite turns into `/components/...`. The duplicate `shortcut icon` link is gone and the 128px link points at the real `favicon-128x128.png`.
@@ -33,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files: `shared/repoUrl.ts`, `shared/officialComponents.ts`, `src/lib/images.ts`, `src/pages/ComponentDetail.tsx`, `src/pages/Directory.tsx`, `src/pages/Admin.tsx`, `src/pages/Submit.tsx`, `src/components/Header.tsx`, `src/components/Footer.tsx`, `src/components/FooterBackup.tsx`, `src/components/ReadmePreviewNotice.tsx`, `src/components/ComponentDetailsEditor.tsx`, `convex/http.ts`, `convex/packages.ts`, `convex/orgRename.ts` (new), `src/docs/api-endpoints.md`
 
 ### Added
+
+- Admin Activity and Users tabs, after Broadcast (2026-10-28 00:20 UTC)
+  - Activity is a live, searchable timeline of what signed-in users do: submissions, messages and replies (including GitHub replies), profile edits, README and link changes, logo and thumbnail changes, visibility and deletion requests, re-review requests, API keys, and first sign in. Filters for time range, group, user, and component; a stats strip; and links from every row to the submission's admin card, the public page, and the user.
+  - Users lists everyone who signed in or submitted, searchable by name or email, with submissions, recent activity, and API access per user. Admins can kick (app sign out), deactivate, ban, or reactivate, and choose to keep, hide, archive, or permanently delete the user's submissions. Team accounts can't be changed.
+  - Deactivated and banned accounts are blocked on the server for submit, edit, messages, uploads, media, visibility and deletion requests, README refresh, re-review, content generation, and API key creation. Ban also revokes the API key and API access grant. `AccountStatusGuard` signs kicked and banned browsers out and shows a notice.
+  - New tables `userActivity` and `userAccounts`. Import existing history backfills past submissions, messages, and submitter accounts in batches, and is safe to rerun. Activity older than 180 days is purged daily at 06:00 UTC.
+  - Deep links: `#admin-activity`, `#admin-users`, each with an optional `:email`.
+  - Files: `convex/schema.ts`, `convex/crons.ts`, `convex/packages.ts`, `convex/packageMessaging.ts`, `convex/githubReplySync.ts`, `convex/apiKeys.ts`, `convex/contentGenerationLimits.ts`, `convex/seoContent.ts`, `convex/userValidators.ts` (new), `convex/userAccess.ts` (new), `convex/userActivity.ts` (new), `convex/userAccounts.ts` (new), `src/pages/Admin.tsx`, `src/main.tsx`, `src/components/AccountStatusGuard.tsx` (new), `src/components/admin/` (new), `src/pages/Documentation.tsx`, `src/docs/admin-activity.md` (new), `src/docs/admin-users.md` (new), `src/docs/admin-dashboard.md`, `src/docs/index.md`
 
 - Every category gets its own llms.txt and markdown file (2026-10-12 17:30 UTC)
   - `/components/<slug>-llms.txt` and `/components/<slug>.md` for any enabled category, in the same format as the official `get-convex` files. They're built on each request, so approving a component, editing a curated list or renaming a category updates them with no extra step. Disabled or unknown categories return 404.

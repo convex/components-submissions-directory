@@ -77,10 +77,14 @@ import {
   ChatCircle,
   ArrowCounterClockwise,
   Plugs,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { ExternalLinkIcon as RadixExternalLinkIcon } from "@radix-ui/react-icons";
 import AiLoadingDots from "../components/AiLoadingDots";
 import DownloadsGrowthTab from "../components/DownloadsGrowthTab";
+import AdminActivityTab from "../components/admin/AdminActivityTab";
+import AdminUsersTab from "../components/admin/AdminUsersTab";
+import Tooltip from "../components/HoverTooltip";
 import { AI_REVIEW_PROMPT_STATUS_LABEL } from "../../shared/aiReviewPromptMeta";
 import { parseRepoUrl, repoHostLabel } from "../../shared/repoUrl";
 import { buildCategoryClientUrls } from "../../shared/categoryUrls";
@@ -1153,34 +1157,6 @@ function ComponentDetailQuickLink({ slug }: { slug?: string }) {
         <RadixExternalLinkIcon className="w-3.5 h-3.5" />
       </a>
     </Tooltip>
-  );
-}
-
-// Custom tooltip component - supports top/bottom positioning
-function Tooltip({
-  children,
-  content,
-  position = "bottom",
-}: {
-  children: React.ReactNode;
-  content: string;
-  position?: "top" | "bottom";
-}) {
-  return (
-    <div className="relative group">
-      {children}
-      {position === "top" ? (
-        <div className="absolute z-50 px-2 py-1 text-xs font-normal text-white bg-dark rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap bottom-full left-1/2 -translate-x-1/2 mb-1">
-          {content}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-dark" />
-        </div>
-      ) : (
-        <div className="absolute z-50 px-2 py-1 text-xs font-normal text-white bg-dark rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap top-full left-1/2 -translate-x-1/2 mt-1">
-          {content}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-dark" />
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -10885,7 +10861,9 @@ type FilterType =
   | "api"
   | "logs"
   | "growth"
-  | "broadcast";
+  | "broadcast"
+  | "activity"
+  | "users";
 
 const ADMIN_TOOL_TABS = [
   "settings",
@@ -10893,6 +10871,8 @@ const ADMIN_TOOL_TABS = [
   "logs",
   "growth",
   "broadcast",
+  "activity",
+  "users",
 ] as const;
 
 type AdminToolTab = (typeof ADMIN_TOOL_TABS)[number];
@@ -10908,6 +10888,8 @@ function emptyToolTabPages(): Record<AdminToolTab, number> {
     logs: 1,
     growth: 1,
     broadcast: 1,
+    activity: 1,
+    users: 1,
   };
 }
 
@@ -11004,6 +10986,18 @@ function FilterTabs({
       label: "Broadcast",
       icon: <MegaphoneSimple size={16} />,
       tooltip: "Open GitHub issues on submitter repos and sync replies",
+    },
+    {
+      value: "activity",
+      label: "Activity",
+      icon: <ClockCounterClockwise size={16} />,
+      tooltip: "What signed-in users submitted, messaged, and edited",
+    },
+    {
+      value: "users",
+      label: "Users",
+      icon: <UsersThree size={16} />,
+      tooltip: "Search users and sign out, deactivate, ban, or reactivate",
     },
   ];
 
@@ -11876,9 +11870,37 @@ function AdminDashboard({
     null,
   );
   const hashTargetRef = useRef<HTMLDivElement>(null);
+  // Activity tab user filter and Users tab focus (remounts via key)
+  const [activityActor, setActivityActor] = useState<string | null>(null);
+  const [usersFocus, setUsersFocus] = useState<{
+    email?: string;
+    key: number;
+  }>({ key: 0 });
   useEffect(() => {
     if (typeof window === "undefined") return;
     const parseHash = () => {
+      // #admin-activity, #admin-users, optionally with :email to prefilter
+      const toolMatch = window.location.hash.match(
+        /^#admin-(activity|users)(?::(.+))?$/,
+      );
+      if (toolMatch) {
+        const email = toolMatch[2]
+          ? decodeURIComponent(toolMatch[2])
+          : undefined;
+        if (toolMatch[1] === "activity") {
+          setActivityActor(email ?? null);
+          setActiveFilter("activity");
+        } else {
+          setUsersFocus((prev) => ({ email, key: prev.key + 1 }));
+          setActiveFilter("users");
+        }
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${window.location.pathname}${window.location.search}`,
+        );
+        return;
+      }
       if (window.location.hash === "#settings-github-broadcast") {
         setActiveFilter("broadcast");
         window.history.replaceState(
@@ -12035,6 +12057,16 @@ function AdminDashboard({
     setCurrentPage((prev) => ({ ...prev, [filter]: 1 }));
   };
 
+  // Cross-links between the Activity and Users tabs
+  const viewUserActivity = (email: string) => {
+    setActivityActor(email);
+    setActiveFilter("activity");
+  };
+  const viewUser = (email: string) => {
+    setUsersFocus((prev) => ({ email, key: prev.key + 1 }));
+    setActiveFilter("users");
+  };
+
   useEffect(() => {
     if (activeFilter !== "settings") return;
 
@@ -12139,6 +12171,8 @@ function AdminDashboard({
     logs: 0,
     growth: 0,
     broadcast: 0,
+    activity: 0,
+    users: 0,
     pending: nonArchivedPackages.filter(
       (p) => !p.reviewStatus || p.reviewStatus === "pending",
     ).length,
@@ -13013,6 +13047,24 @@ function AdminDashboard({
 
       {/* All time downloads growth tab */}
       {activeFilter === "growth" && <DownloadsGrowthTab />}
+
+      {/* User activity log */}
+      {activeFilter === "activity" && (
+        <AdminActivityTab
+          actorEmail={activityActor}
+          onActorEmailChange={setActivityActor}
+          onViewUser={viewUser}
+        />
+      )}
+
+      {/* User accounts */}
+      {activeFilter === "users" && (
+        <AdminUsersTab
+          key={usersFocus.key}
+          initialEmail={usersFocus.email}
+          onViewActivity={viewUserActivity}
+        />
+      )}
     </div>
   );
 }

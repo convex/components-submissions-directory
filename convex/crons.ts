@@ -69,4 +69,12 @@ crons.interval(
   {},
 );
 
+// Daily at 6 AM UTC: drop admin Activity rows older than 180 days
+crons.cron(
+  "purge-old-user-activity",
+  "0 6 * * *",
+  internal.userActivity._purgeOldActivity,
+  {},
+);
+
 export default crons;

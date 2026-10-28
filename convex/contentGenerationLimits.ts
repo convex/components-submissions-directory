@@ -1,16 +1,28 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { getAccountBlockMessage } from "./userAccess";
 
 const CONTENT_GENERATION_WINDOW_MS = 60 * 60 * 1000;
 const MAX_CONTENT_GENERATIONS_PER_WINDOW = 5;
 
 export const _checkRateLimit = internalQuery({
-  args: { userKey: v.string(), now: v.number() },
+  args: {
+    userKey: v.string(),
+    now: v.number(),
+    email: v.optional(v.string()),
+  },
   returns: v.object({
     allowed: v.boolean(),
     resetAt: v.optional(v.number()),
+    blockedMessage: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
+    // Deactivated and banned accounts cannot spend AI generations
+    if (args.email) {
+      const blockedMessage = await getAccountBlockMessage(ctx, args.email);
+      if (blockedMessage) return { allowed: false, blockedMessage };
+    }
+
     const windowStart = args.now - CONTENT_GENERATION_WINDOW_MS;
 
     const recentRequests = await ctx.db

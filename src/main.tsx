@@ -33,6 +33,7 @@ const Documentation = lazy(() => import("./pages/Documentation"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 import DeferredWebAnalytics from "./components/DeferredWebAnalytics";
 import Footer from "./components/Footer";
+import AccountStatusGuard from "./components/AccountStatusGuard";
 import { isReservedRoute, parseSlugFromPath } from "./lib/slugs";
 import { ConnectAuthProvider, useConnectAuth } from "./lib/connectAuth";
 import {
@@ -413,6 +414,7 @@ const app = (
             <Footer />
           </div>
         </div>
+        <AccountStatusGuard />
       </ConvexProviderWithAuthKit>
     </ConnectAuthProvider>
     <DeferredWebAnalytics />

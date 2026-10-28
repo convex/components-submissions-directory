@@ -33,6 +33,8 @@ import adminSeoDoc from "../docs/admin-seo.md?raw";
 import adminThumbnailsDoc from "../docs/admin-thumbnails.md?raw";
 import adminSettingsDoc from "../docs/admin-settings.md?raw";
 import adminBroadcastDoc from "../docs/admin-broadcast.md?raw";
+import adminActivityDoc from "../docs/admin-activity.md?raw";
+import adminUsersDoc from "../docs/admin-users.md?raw";
 import adminNotesDoc from "../docs/admin-notes.md?raw";
 import mcpDoc from "../docs/mcp.md?raw";
 import apiEndpointsDoc from "../docs/api-endpoints.md?raw";
@@ -62,6 +64,8 @@ const docs: DocSection[] = [
   { id: "admin-thumbnails", title: "Thumbnails", content: adminThumbnailsDoc, group: "admin-guide" },
   { id: "admin-settings", title: "Settings", content: adminSettingsDoc, group: "admin-guide" },
   { id: "admin-broadcast", title: "GitHub Broadcast", content: adminBroadcastDoc, group: "admin-guide" },
+  { id: "admin-activity", title: "Activity", content: adminActivityDoc, group: "admin-guide" },
+  { id: "admin-users", title: "Users", content: adminUsersDoc, group: "admin-guide" },
   { id: "admin-notes", title: "Notes and Comments", content: adminNotesDoc, group: "admin-guide" },
   { id: "mcp", title: "MCP (Model Context Protocol)", content: mcpDoc, group: "integrations" },
   { id: "api-endpoints", title: "Public API Endpoints", content: apiEndpointsDoc, group: "integrations" },

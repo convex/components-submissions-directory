@@ -27,6 +27,8 @@ The Convex Components Directory is a curated catalog of open-source backend comp
 - [SEO content](/components/documentation/admin-seo) - SEO and content generation
 - [Thumbnails](/components/documentation/admin-thumbnails) - Thumbnail management
 - [Settings](/components/documentation/admin-settings) - Admin settings
+- [Activity](/components/documentation/admin-activity) - Timeline of user submissions, messages, and edits
+- [Users](/components/documentation/admin-users) - Search users, kick, deactivate, ban, and reactivate
 - [GitHub Broadcast](/components/documentation/admin-broadcast) - Broadcast issues to submitter repos and sync replies
 - [Notes and comments](/components/documentation/admin-notes) - Communication system and GitHub issue messaging
 

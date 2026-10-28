@@ -31,6 +31,7 @@ import {
 } from "@phosphor-icons/react";
 import { ExternalLinkIcon as RadixExternalLinkIcon, Cross2Icon } from "@radix-ui/react-icons";
 import { RepoHostIcon } from "../components/RepoHostIcon";
+import Tooltip from "../components/HoverTooltip";
 import {
   isSupportedRepoUrl,
   parseRepoUrl,
@@ -45,42 +46,6 @@ function useBasePath() {
 
 // Review status type
 type ReviewStatus = "pending" | "in_review" | "approved" | "changes_requested" | "rejected";
-
-// Custom tooltip component with multiple position options
-function Tooltip({
-  children,
-  content,
-  position = "bottom",
-}: {
-  children: React.ReactNode;
-  content: string;
-  position?: "top" | "bottom" | "left" | "right";
-}) {
-  const positionClasses = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-1",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-1",
-    left: "right-full top-1/2 -translate-y-1/2 mr-1",
-    right: "left-full top-1/2 -translate-y-1/2 ml-1",
-  };
-
-  const arrowClasses = {
-    top: "top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-dark",
-    bottom: "bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-dark",
-    left: "left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-dark",
-    right: "right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-dark",
-  };
-
-  return (
-    <div className="relative group">
-      {children}
-      <div
-        className={`absolute z-50 px-2 py-1 text-xs font-normal text-white bg-dark rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap ${positionClasses[position]}`}>
-        {content}
-        <div className={`absolute ${arrowClasses[position]}`} />
-      </div>
-    </div>
-  );
-}
 
 // Custom modal component for app-styled alerts
 function CustomModal({

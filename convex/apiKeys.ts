@@ -9,6 +9,7 @@ import {
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { requireAdminIdentity } from "./auth";
+import { assertEmailActive, logUserActivity } from "./userAccess";
 
 // Rate limit config
 const AUTHENTICATED_RATE_LIMIT = 100; // requests per minute with a valid key
@@ -47,10 +48,18 @@ async function generateApiKeyHandler(ctx: any) {
     throw new ConvexError("Email is required for API access.");
   }
 
+  await assertEmailActive(ctx, userEmail);
   await verifyApiAccess(ctx, userEmail);
   await ensureNoActiveKey(ctx, tokenIdentifier);
 
-  return await createAndStoreApiKey(ctx, tokenIdentifier);
+  const rawKey = await createAndStoreApiKey(ctx, tokenIdentifier);
+  await logUserActivity(ctx, {
+    actorEmail: userEmail,
+    actorName: identity.name ?? undefined,
+    type: "api_key_created",
+    summary: `Created API key ${rawKey.slice(0, 12)}...`,
+  });
+  return rawKey;
 }
 
 async function verifyApiAccess(ctx: any, userEmail: string) {
@@ -131,6 +140,14 @@ export const revokeApiKey = mutation({
     }
 
     await ctx.db.patch(existing._id, { status: "revoked" });
+    if (identity.email) {
+      await logUserActivity(ctx, {
+        actorEmail: identity.email,
+        actorName: identity.name ?? undefined,
+        type: "api_key_revoked",
+        summary: `Revoked API key ${existing.keyPrefix}`,
+      });
+    }
     return null;
   },
 });

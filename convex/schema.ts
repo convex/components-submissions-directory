@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { userAccountFields, userActivityFields } from "./userValidators";
 
 // Review status values: pending, in_review, approved, changes_requested, rejected
 // Visibility values: visible, hidden, archived
@@ -922,6 +923,36 @@ const applicationTables = {
   })
     .index("by_email", ["email"])
     .index("by_revoked", ["revoked"]),
+
+  // Admin Activity tab: one row per signed-in user event (submissions,
+  // messages, profile edits, account changes). Purged after 180 days.
+  // Fields live in userValidators.ts so admin return validators match.
+  userActivity: defineTable(userActivityFields)
+    .index("by_createdAt", ["createdAt"])
+    .index("by_category_and_createdAt", ["category", "createdAt"])
+    .index("by_actorEmail_and_createdAt", ["actorEmail", "createdAt"])
+    .index("by_actorEmail_and_category_and_createdAt", [
+      "actorEmail",
+      "category",
+      "createdAt",
+    ])
+    .index("by_packageId_and_createdAt", ["packageId", "createdAt"])
+    .index("by_sourceKey", ["sourceKey"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["category", "actorEmail"],
+    }),
+
+  // Admin Users tab: one row per lowercased email that signed in or submitted.
+  // status gates every user write (see convex/userAccounts.ts).
+  userAccounts: defineTable(userAccountFields)
+    .index("by_email", ["email"])
+    .index("by_status_and_lastSeenAt", ["status", "lastSeenAt"])
+    .index("by_lastSeenAt", ["lastSeenAt"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["status"],
+    }),
 };
 
 export default defineSchema({
